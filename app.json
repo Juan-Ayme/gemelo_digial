@@ -1,25 +1,72 @@
 {
   "expo": {
-    "name": "gemelo-digital",
+    "name": "ando",
     "slug": "gemelo-digital",
+    "scheme": "ando",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "pe.edu.lapontificia.ando",
+      "infoPlist": {
+        "NSMotionUsageDescription": "ando registra tu actividad física (pasos y movimiento) para construir tu rutina personal.",
+        "NSLocationWhenInUseUsageDescription": "ando usa tu ubicación general para identificar zonas frecuentes (hogar, campus, tránsito). No conserva coordenadas exactas.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "ando puede identificar zonas frecuentes en segundo plano para completar tu rutina cuando la app no esté abierta."
+      }
     },
     "android": {
+      "package": "pe.edu.lapontificia.ando",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#161B4D",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "permissions": [
+        "ACTIVITY_RECOGNITION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "FOREGROUND_SERVICE",
+        "POST_NOTIFICATIONS"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
+      "bundler": "metro",
+      "output": "single",
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#161B4D",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
+      ],
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "ando usa tu ubicación general para identificar zonas frecuentes; nunca conservamos coordenadas exactas."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#3F60F6"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
