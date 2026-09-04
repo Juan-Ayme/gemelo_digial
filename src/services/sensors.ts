@@ -1,20 +1,21 @@
 import { Platform } from "react-native";
-import * as Crypto from "expo-crypto";
 import * as Location from "expo-location";
 import { Accelerometer, Pedometer } from "expo-sensors";
 
 import { lget, lset } from "@services/localDb";
+import { nuevoEvento } from "@services/eventoFactory";
+import { leerHealthConnect } from "@services/healthConnect";
 import type { ActividadPredicha, ConsentMap, EventoRow } from "@services/types";
 
 /**
- * Captura de sensores REALES del teléfono con lo que ofrece Expo SDK 57
- * (funciona en Expo Go y en development build):
- *   - Movimiento (acelerómetro) → actividad "desplazamiento" / "permanencia"
- *   - Ubicación (expo-location) → zona general (NUNCA coordenadas exactas)
- *   - Pasos (podómetro) → solo iOS; Android requiere Health Connect (dev build)
+ * Captura de sensores REALES del teléfono:
+ *   - Movimiento (acelerómetro) → actividad "desplazamiento" / "permanencia"  [Android + iOS]
+ *   - Ubicación (expo-location) → zona general (NUNCA coordenadas exactas)     [Android + iOS]
+ *   - Pasos (podómetro) → solo iOS
+ *   - Pasos (Android), sueño y frecuencia cardiaca → vía Health Connect        [Android + dev build]
  *
  * Cada lectura se gobierna por el consentimiento del titular y se guarda como
- * `evento_crudo` real (procedencia "telefono", medido_directamente=true).
+ * `evento_crudo` real.
  */
 
 /** Convierte coordenadas en un id de zona opaco (~celda de 1 km). Sin lat/lng. */
@@ -23,28 +24,6 @@ function zonaDeCoords(lat: number, lng: number): string {
   let h = 0;
   for (let i = 0; i < cell.length; i++) h = (h * 31 + cell.charCodeAt(i)) | 0;
   return `Zona-${Math.abs(h).toString(36).slice(0, 4).toUpperCase()}`;
-}
-
-function nuevoEvento(part: Partial<EventoRow>): EventoRow {
-  const now = new Date().toISOString();
-  return {
-    evento_uuid: Crypto.randomUUID(),
-    procedencia: "telefono",
-    tipo_evento: "ventana_actividad",
-    inicio_en: now,
-    fin_en: now,
-    valor_numerico: null,
-    valor_texto: null,
-    unidad: null,
-    confianza: null,
-    zona_general: null,
-    medido_directamente: true,
-    disponibilidad: true,
-    calidad: null,
-    version_consentimiento: "v1.0",
-    datos_minimos: { fuente: "sensores" },
-    ...part,
-  };
 }
 
 async function leerZona(): Promise<string | null> {
@@ -94,9 +73,9 @@ async function muestreaActividad(
   });
 }
 
-/** Pasos del día como incremento desde la última lectura (iOS). */
+/** Pasos del día como incremento desde la última lectura (podómetro iOS). */
 async function leerPasosIncremento(userId: string): Promise<number | null> {
-  if (Platform.OS !== "ios") return null; // Android: requiere Health Connect (dev build)
+  if (Platform.OS !== "ios") return null; // Android: los pasos llegan por Health Connect
   try {
     if (!(await Pedometer.isAvailableAsync())) return null;
     const perm = await Pedometer.requestPermissionsAsync();
@@ -131,6 +110,7 @@ export async function capturarSensoresReales(
         zona_general: zona,
         confianza,
         calidad: confianza,
+        datos_minimos: { fuente: "acelerometro" },
       }),
     );
   }
@@ -150,9 +130,20 @@ export async function capturarSensoresReales(
     }
   }
 
+  // Health Connect (Android + development build): pasos, sueño y ritmo cardiaco.
+  const hc = await leerHealthConnect(userId, consents);
+  eventos.push(...hc);
+
   // Si solo consintió la zona, igualmente registramos una lectura de ubicación.
   if (!eventos.length && zona) {
-    eventos.push(nuevoEvento({ tipo_evento: "ubicacion", valor_texto: "permanencia", zona_general: zona }));
+    eventos.push(
+      nuevoEvento({
+        tipo_evento: "ubicacion",
+        valor_texto: "permanencia",
+        zona_general: zona,
+        datos_minimos: { fuente: "gps" },
+      }),
+    );
   }
 
   return eventos;

@@ -142,6 +142,7 @@ export function buildGemelo(events: EventoRow[]): GemeloSnapshot {
   let minutosDescanso = 0;
   for (const e of sorted) {
     if (e.unidad === "pasos" && typeof e.valor_numerico === "number") pasosHoy += e.valor_numerico;
+    if (e.tipo_evento === "sueno" && typeof e.valor_numerico === "number") minutosDescanso += e.valor_numerico;
     const act = e.valor_texto ?? "";
     if (activo.has(act)) minutosActivos += duracionMin(e);
     else if (descanso.has(act)) minutosDescanso += duracionMin(e);
@@ -158,12 +159,14 @@ export function buildGemelo(events: EventoRow[]): GemeloSnapshot {
   const hayActividad = sorted.some((e) => Boolean(e.valor_texto));
   const hayPasos = sorted.some((e) => e.unidad === "pasos");
   const hayZona = sorted.some((e) => Boolean(e.zona_general));
+  const haySueno = sorted.some((e) => e.tipo_evento === "sueno");
+  const hayRitmo = sorted.some((e) => e.tipo_evento === "ritmo_cardiaco");
   const fuentes: FuenteEstado[] = [
     { codigo: "activity", nombre: "Actividad", disponible: hayActividad, calidad: hayActividad ? calidadProm : 0 },
     { codigo: "steps", nombre: "Pasos", disponible: hayPasos, calidad: hayPasos ? calidadProm : 0 },
     { codigo: "zone", nombre: "Zona general", disponible: hayZona, calidad: hayZona ? calidadProm : 0 },
-    { codigo: "sleep", nombre: "Sueño estimado", disponible: false, calidad: 0 },
-    { codigo: "wearable", nombre: "Wearable", disponible: false, calidad: 0 },
+    { codigo: "sleep", nombre: "Sueño", disponible: haySueno, calidad: haySueno ? calidadProm : 0 },
+    { codigo: "wearable", nombre: "Wearable / ritmo", disponible: hayRitmo, calidad: hayRitmo ? 90 : 0 },
   ];
 
   return {

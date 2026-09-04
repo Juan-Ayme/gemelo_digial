@@ -63,6 +63,30 @@ gemelo-digital/
 | `npm run web`       | Modo web (para revisar UI rápido)      |
 | `npm run typecheck` | Verifica TypeScript sin emitir         |
 
+## Sensores completos (development build)
+
+Los sensores del teléfono (movimiento, zona, pasos iOS) funcionan en **Expo Go**.
+Pero **Health Connect** (pasos Android, sueño, frecuencia cardiaca) **no** existe en
+Expo Go: necesita un *development build*. Ya está todo configurado (config plugins
+`react-native-health-connect` + `expo-build-properties`, permisos `health.*` y
+`eas.json`). Para generarlo:
+
+```
+# Opción A — build en la nube (recomendado, no necesitas Android Studio)
+npm install -g eas-cli
+eas login
+eas build --profile development --platform android
+# instala el APK en tu teléfono y luego:
+npx expo start --dev-client
+
+# Opción B — build local (necesita Android Studio + SDK)
+npx expo run:android
+```
+
+Requisitos en el teléfono: Android con la app **Health Connect** instalada (nativa en
+Android 14+) y con datos (pasos/sueño/ritmo) de alguna app o wearable. La primera
+captura pedirá los permisos de Health Connect.
+
 ## Base de datos
 
 La app está alineada con el esquema real del proyecto (`ando_schema`), cuya columna
@@ -86,7 +110,7 @@ Los tipos Zod en `src/schemas` se mantienen alineados con los enumerados del SQL
 
 - **Capa de datos con TanStack Query.** Los hooks en `src/hooks` (`useProfile`, `useConsents`, `useGemelo`, `useRutina`) leen/escriben vía `src/services`, que hablan con Supabase o, en modo demo, con un almacén local (AsyncStorage). La caché se **persiste offline** (`PersistQueryClientProvider`), así que los datos siguen tras cerrar la app. `authStore` (Zustand) queda solo para la sesión.
 - **Consentimiento persistido.** Cada switch del perfil inserta una fila de historial en `consentimientos` (con `otorgado_en` / `revocado_en` y actualización optimista); el estado actual es la fila más reciente por categoría.
-- **Captura de sensores reales.** "Conectar y capturar sensores" (pantalla Hoy) lee, según el consentimiento del titular: acelerómetro (movimiento → actividad), ubicación (→ zona general, **nunca coordenadas exactas**) y podómetro (pasos, solo iOS), y guarda `eventos_crudos` reales. El gemelo/rutina se recalculan desde los eventos del día. Sueño, wearable y frecuencia cardiaca requieren un development build + Health Connect. El botón "demo" genera datos sintéticos para probar sin dispositivo. El modelo Random Forest sigue siendo trabajo futuro del pipeline.
+- **Captura de sensores reales.** "Conectar y capturar sensores" (pantalla Hoy) lee, según el consentimiento del titular: acelerómetro (movimiento → actividad), ubicación (→ zona general, **nunca coordenadas exactas**) y podómetro (pasos, solo iOS), y guarda `eventos_crudos` reales. El gemelo/rutina se recalculan desde los eventos del día. En un **development build** (no Expo Go), Health Connect añade **pasos en Android, sueño y frecuencia cardiaca** (`react-native-health-connect`, solo Android). El botón "demo" genera datos sintéticos para probar sin dispositivo. El modelo Random Forest sigue siendo trabajo futuro del pipeline.
 - **Privacidad primero.** No se guardan coordenadas exactas: la ubicación se convierte en `zone_id` antes de enviarse.
 - **Consentimiento granular.** Cada categoría (`actividad`, `pasos`, `sueno`, `zona_general`, `wearable`, `fisiologia`, `ambiente`, `notificaciones`, `investigacion`) se activa por separado.
 - **Modo demo.** Si Supabase no está configurado, `authStore.enterDemo()` permite explorar la UI sin backend.
@@ -97,7 +121,7 @@ Los tipos Zod en `src/schemas` se mantienen alineados con los enumerados del SQL
 ## Próximos pasos técnicos
 
 1. Reemplazar la heurística de movimiento (acelerómetro) por Activity Recognition API mediante un módulo nativo (Expo Modules API) para clasificar caminata/vehículo/bici.
-2. Añadir Health Connect (`react-native-health-connect`) tras development build: pasos en Android, sueño, wearable y frecuencia cardiaca.
+2. ✅ Integrado Health Connect (`react-native-health-connect`): pasos en Android, sueño y frecuencia cardiaca — requiere generar el development build (ver "Sensores completos" abajo).
 3. Implementar cola local cifrada para eventos y sincronizar por lote a Supabase.
 4. Definir Edge Functions para validar lotes y coordinar el pipeline PySpark.
 5. Publicar la primera versión del modelo Random Forest en `versiones_modelo`.
