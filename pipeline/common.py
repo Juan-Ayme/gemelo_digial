@@ -39,14 +39,28 @@ def crear_spark(app: str = "ando-gemelo"):
     )
 
 
+JDBC_DRIVER = "org.postgresql.Driver"
+
+
 def leer_jdbc(spark, url: str, tabla: str):
     return (
-        spark.read.format("jdbc").option("url", url).option("dbtable", f"public.{tabla}").load()
+        spark.read.format("jdbc")
+        .option("url", url)
+        .option("driver", JDBC_DRIVER)
+        .option("dbtable", f"public.{tabla}")
+        .load()
     )
 
 
 def escribir_jdbc(df, url: str, tabla: str, mode: str = "append"):
-    df.write.format("jdbc").option("url", url).option("dbtable", f"public.{tabla}").mode(mode).save()
+    (
+        df.write.format("jdbc")
+        .option("url", url)
+        .option("driver", JDBC_DRIVER)
+        .option("dbtable", f"public.{tabla}")
+        .mode(mode)
+        .save()
+    )
 
 
 def construir_features(eventos):
