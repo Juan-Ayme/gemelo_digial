@@ -1,6 +1,7 @@
 import "../global.css";
 
 import { useEffect } from "react";
+import { LogBox } from "react-native";
 import { Slot, SplashScreen } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -21,6 +22,18 @@ import { useAuthStore } from "@stores/authStore";
 import { asyncStoragePersister, queryClient } from "@lib/queryClient";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// Aviso de deprecación de SafeAreaView emitido por código nativo de terceros
+// (Expo Go / RN). Nuestro código usa react-native-safe-area-context de forma
+// correcta, así que es inofensivo: lo silenciamos SOLO a él (no otros logs),
+// tanto en el LogBox como en la consola/terminal de Metro.
+const AVISO_SAFE_AREA = "SafeAreaView has been deprecated";
+LogBox.ignoreLogs([AVISO_SAFE_AREA]);
+const _consoleWarn = console.warn.bind(console);
+console.warn = (...args: Parameters<typeof console.warn>) => {
+  if (typeof args[0] === "string" && args[0].includes(AVISO_SAFE_AREA)) return;
+  _consoleWarn(...args);
+};
 
 export default function RootLayout() {
   const initAuth = useAuthStore((s) => s.init);
