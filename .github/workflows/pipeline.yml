@@ -31,7 +31,14 @@ jobs:
       - name: Instalar PySpark
         run: pip install -r pipeline/requirements.txt
 
-      - name: Entrenar y escribir predicciones
+      - name: Modelo de arranque (bootstrap sintetico) + prediccion
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          WRITE_BACK: "1"
+          REAL_USER_ID: ${{ secrets.REAL_USER_ID }} # opcional: tu usuario_id
+        run: python pipeline/bootstrap_sintetico.py
+
+      - name: Entrenar con datos reales (si hay suficientes)
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           WRITE_BACK: "1"

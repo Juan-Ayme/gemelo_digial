@@ -34,6 +34,15 @@ ev = C.leer_jdbc(spark, JDBC_URL, "eventos_crudos").select(
 feat = C.construir_features(ev)
 print("Ventanas de actividad:", feat.count())
 
+# Con muy pocos datos reales el RF no es entrenable; salimos en verde (el modelo
+# de arranque lo cubre bootstrap_sintetico.py).
+n_train = feat.filter(F.col("etiqueta_siguiente").isNotNull()).count()
+if n_train < 10:
+    print(f"Solo {n_train} ventanas reales con etiqueta; omito el entrenamiento con datos reales.")
+    print("El modelo de arranque lo genera bootstrap_sintetico.py.")
+    spark.stop()
+    raise SystemExit(0)
+
 model, metrics = C.entrenar_rf(feat, NUM_TREES, SEED)
 print("Métricas:", metrics)
 if metrics["n_train"] < 20:
