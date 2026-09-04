@@ -68,6 +68,18 @@ Necesita eventos reales: primero **captura en la app** (Perfil → consentimient
 → Hoy → *Conectar y capturar sensores*) unas cuantas veces. Con pocas ventanas el
 modelo será poco fiable (el script te avisa).
 
+## Opción C — Automático en la nube (GitHub Actions)
+
+Para que corra **solo** en un horario, sin tu PC ni Colab, ya está el workflow
+[`.github/workflows/pipeline.yml`](../.github/workflows/pipeline.yml):
+
+1. Sube el repo a GitHub y en el repo → **Settings → Secrets and variables →
+   Actions → New repository secret** crea `SUPABASE_DB_URL` con tu cadena JDBC.
+2. Ese workflow corre a diario (cron 06:00 UTC) y también con el botón **Run
+   workflow** (pestaña *Actions*). Entrena y escribe `predicciones` (WRITE_BACK=1).
+
+El secreto queda cifrado en GitHub; nunca se guarda en el código.
+
 ## Después de correrlo
 
 Cuando el pipeline escriba `predicciones`, el siguiente paso es que la app **lea

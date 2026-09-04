@@ -1,0 +1,38 @@
+name: Pipeline gemelo (PySpark + Random Forest)
+
+# Corre el pipeline de forma AUTOMÁTICA en la nube de GitHub (gratis), sin PC
+# ni servidor propio. Lee eventos de Supabase, entrena el Random Forest y
+# escribe predicciones. El secreto de conexión vive en GitHub, nunca en el repo.
+
+on:
+  schedule:
+    # Todos los días a las 06:00 UTC (= 01:00 en Perú, UTC-5). Ajusta a gusto.
+    - cron: "0 6 * * *"
+  workflow_dispatch: {} # además permite lanzarlo a mano desde la pestaña Actions
+
+jobs:
+  entrenar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17 (requerido por Spark)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar PySpark
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Entrenar y escribir predicciones
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          WRITE_BACK: "1"
+        run: python pipeline/gemelo_pipeline.py
