@@ -1,4 +1,4 @@
-import { Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -16,19 +16,23 @@ import { Chip } from "@components/ui/Chip";
 import { Button } from "@components/ui/Button";
 import { ConfianzaRing } from "@components/gemelo/ConfianzaRing";
 import { useProfile } from "@hooks/useProfile";
-import { useGemelo, useSimularCaptura } from "@hooks/useGemelo";
+import { useConsents } from "@hooks/useConsents";
+import { useGemelo, useSimularCaptura, useCapturarSensores } from "@hooks/useGemelo";
 import { ACTIVIDAD_LABELS } from "@services/types";
 import { colors } from "@theme/colors";
 
 export default function Hoy() {
   const { data: profile } = useProfile();
   const { data: gemelo } = useGemelo();
+  const { data: consents } = useConsents();
   const simular = useSimularCaptura();
+  const capturar = useCapturarSensores();
 
   const alias = profile?.alias ?? "Estudiante";
   const hoy = format(new Date(), "EEEE d 'de' MMMM", { locale: es });
   const prediccion = gemelo?.prediccion ?? null;
   const sinDatos = (gemelo?.totalEventos ?? 0) === 0;
+  const algunConsent = consents ? Object.values(consents).some(Boolean) : false;
 
   return (
     <Screen scroll>
@@ -116,26 +120,45 @@ export default function Hoy() {
         <View className="flex-row items-center gap-3">
           <ActivitySquare size={20} color={colors.brand} />
           <Text className="text-lg font-semibold text-ink-900 dark:text-ink-50">
-            Simular nueva captura
+            Sensores del teléfono
           </Text>
         </View>
         <Text className="text-sm text-ink-500 dark:text-ink-300 mt-2">
-          {sinDatos
-            ? "Todavía no hay ventanas de hoy. Genera eventos sintéticos para ver el gemelo en acción mientras se integran las APIs nativas."
-            : "Mientras se integran las APIs nativas, puedes generar eventos sintéticos para alimentar tu gemelo digital."}
+          Lee tu actividad (movimiento), zona general y pasos según los permisos que
+          hayas activado en Perfil. Sueño y wearables requieren un development build
+          (Health Connect).
         </Text>
         <Button
           className="mt-4"
           size="sm"
-          label="Registrar ventana simulada"
+          label="Conectar y capturar sensores"
+          loading={capturar.isPending}
+          onPress={() => {
+            if (!algunConsent) {
+              Alert.alert(
+                "Sin permisos",
+                "Activa al menos un consentimiento en Perfil (actividad, pasos o zona) para leer tus sensores.",
+              );
+              return;
+            }
+            capturar.mutate(consents!);
+          }}
+        />
+        {capturar.isError ? (
+          <Text className="text-xs text-error mt-2">
+            {(capturar.error as Error)?.message === "sin-sensores"
+              ? "No hay sensores disponibles o autorizados. Revisa los permisos del sistema y tus consentimientos."
+              : "No se pudo guardar la captura. Revisa tu conexión o el esquema de Supabase."}
+          </Text>
+        ) : null}
+        <Button
+          className="mt-2"
+          size="sm"
+          variant="ghost"
+          label={sinDatos ? "Generar dato de prueba (demo)" : "Añadir dato demo"}
           loading={simular.isPending}
           onPress={() => simular.mutate()}
         />
-        {simular.isError ? (
-          <Text className="text-xs text-error mt-2">
-            No se pudo guardar el evento. Revisa tu conexión o el esquema de Supabase.
-          </Text>
-        ) : null}
       </Card>
     </Screen>
   );

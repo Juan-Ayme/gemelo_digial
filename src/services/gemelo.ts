@@ -78,18 +78,22 @@ export function generarEventoSimulado(): EventoRow {
 }
 
 export async function insertEventoSimulado(userId: string): Promise<void> {
-  const ev = generarEventoSimulado();
+  await insertEventos(userId, [generarEventoSimulado()]);
+}
+
+/** Inserta uno o varios eventos (real desde sensores, o simulados). */
+export async function insertEventos(userId: string, eventos: EventoRow[]): Promise<void> {
+  if (!eventos.length) return;
 
   if (!isRemote()) {
     const list = await lget<EventoRow[]>(`events:${userId}`, []);
-    list.push(ev);
+    list.push(...eventos);
     await lset(`events:${userId}`, list);
     return;
   }
 
-  const { error } = await supabase!
-    .from(TABLES.eventosCrudos)
-    .insert({ [OWNER_COL]: userId, ...ev });
+  const rows = eventos.map((ev) => ({ [OWNER_COL]: userId, ...ev }));
+  const { error } = await supabase!.from(TABLES.eventosCrudos).insert(rows);
   if (error) throw error;
 }
 

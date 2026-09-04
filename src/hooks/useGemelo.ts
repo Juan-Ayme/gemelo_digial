@@ -6,9 +6,11 @@ import {
   buildGemelo,
   buildRutina,
   fetchEventsToday,
+  insertEventos,
   insertEventoSimulado,
 } from "@services/gemelo";
-import type { EventoRow, GemeloSnapshot, RutinaBloque } from "@services/types";
+import { capturarSensoresReales } from "@services/sensors";
+import type { ConsentMap, EventoRow, GemeloSnapshot, RutinaBloque } from "@services/types";
 
 function useEventosHoy<T>(select: (events: EventoRow[]) => T) {
   const userId = useAuthStore((s) => s.user?.id ?? null);
@@ -34,6 +36,24 @@ export function useSimularCaptura() {
 
   return useMutation({
     mutationFn: () => insertEventoSimulado(userId!),
+    onSuccess: () => {
+      if (userId) qc.invalidateQueries({ queryKey: qk.events(userId) });
+    },
+  });
+}
+
+/** Lee los sensores reales autorizados, los guarda y refresca el gemelo/rutina. */
+export function useCapturarSensores() {
+  const qc = useQueryClient();
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+
+  return useMutation({
+    mutationFn: async (consents: ConsentMap) => {
+      const eventos = await capturarSensoresReales(userId!, consents);
+      if (!eventos.length) throw new Error("sin-sensores");
+      await insertEventos(userId!, eventos);
+      return eventos.length;
+    },
     onSuccess: () => {
       if (userId) qc.invalidateQueries({ queryKey: qk.events(userId) });
     },
