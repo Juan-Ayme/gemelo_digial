@@ -9,6 +9,21 @@ resultados en `caracteristicas_actividad`, `versiones_modelo` y `predicciones`.
 > muestra; este pipeline (Big Data) corre en la nube o tu PC. Es la arquitectura
 > correcta: el modelo se entrena centralizando los datos de todos los usuarios.
 
+## Los tres scripts
+
+| Script | Qué hace | Necesita |
+|---|---|---|
+| `bootstrap_sintetico.py` | **Arranque en frío**: entrena el RF de "próxima actividad" con rutinas estudiantiles **generadas**. Da un modelo funcionando YA. | Nada (o Supabase para registrarlo) |
+| `gemelo_pipeline.py` | Igual pero con tus **datos reales** de `eventos_crudos`. Escribe caracteristicas + modelo + predicciones. | `SUPABASE_DB_URL` |
+| `har_clasificador.py` | Clasificador de actividad desde sensores con el **dataset público UCI HAR**. Otro sub-problema (reconocer la actividad actual). | dataset UCI HAR |
+
+`common.py` contiene la lógica compartida de features y entrenamiento (los dos
+primeros la usan, así el bootstrap y el modelo real son idénticos en features).
+
+Arranque rápido (Colab): `!pip install -r pipeline/requirements.txt` y luego
+`!python pipeline/bootstrap_sintetico.py` — verás las métricas del modelo de
+arranque sin tocar nada más.
+
 ## Conexión a Supabase (importante)
 
 El pipeline usa la **cadena de Postgres** (rol `postgres`, que omite RLS y ve a
@@ -79,6 +94,28 @@ Para que corra **solo** en un horario, sin tu PC ni Colab, ya está el workflow
    workflow** (pestaña *Actions*). Entrena y escribe `predicciones` (WRITE_BACK=1).
 
 El secreto queda cifrado en GitHub; nunca se guarda en el código.
+
+## Modelo de arranque (bootstrap sintético)
+
+Para tener modelo **antes** de acumular datos reales:
+```bash
+python pipeline/bootstrap_sintetico.py                    # solo entrena y muestra métricas
+WRITE_BACK=1 SUPABASE_DB_URL="jdbc:..." python pipeline/bootstrap_sintetico.py   # registra el modelo
+```
+Con `REAL_USER_ID=<tu-uuid>` además escribe una predicción para tu usuario real
+usando ese modelo (útil para ver la predicción del RF en la app con pocos datos
+propios). El `uuid` es tu `usuario_id` (auth.users.id de tu cuenta).
+
+## Clasificador de actividad (dataset UCI HAR)
+
+1. Descarga **"Human Activity Recognition Using Smartphones"** del UCI ML
+   Repository (busca ese nombre) y descomprime el `.zip`. Queda una carpeta
+   `UCI HAR Dataset/` con `train/` y `test/`.
+2. Ejecuta apuntando `HAR_DIR` a esa carpeta:
+   ```bash
+   HAR_DIR="ruta/UCI HAR Dataset" python pipeline/har_clasificador.py
+   ```
+   Imprime accuracy y F1 del Random Forest sobre las 6 actividades.
 
 ## Después de correrlo
 

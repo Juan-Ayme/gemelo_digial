@@ -2,3 +2,4 @@
 # El driver JDBC de Postgres lo descarga Spark en tiempo de ejecución
 # (spark.jars.packages = org.postgresql:postgresql), así que no va aquí.
 pyspark>=3.5,<3.6
+pandas>=2.0  # solo para har_clasificador.py (carga del dataset UCI HAR)
