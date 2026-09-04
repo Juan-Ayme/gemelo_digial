@@ -27,7 +27,7 @@ from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 
 HAR_DIR = os.environ.get("HAR_DIR", "UCI HAR Dataset")
 URL = "https://d396qusza40orc.cloudfront.net/getdata/projectfiles/UCI%20HAR%20Dataset.zip"
-NUM_TREES = int(os.environ.get("NUM_TREES", "100"))
+NUM_TREES = int(os.environ.get("NUM_TREES", "200"))
 SEED = 42
 
 ACTIVIDADES = {
