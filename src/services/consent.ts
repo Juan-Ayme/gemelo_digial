@@ -22,10 +22,14 @@ export async function fetchConsents(userId: string): Promise<ConsentMap> {
     return lget<ConsentMap>(`consents:${userId}`, { ...DEFAULT_CONSENTS });
   }
 
+  // La tabla es un historial (append-only). El estado actual de cada categoría
+  // es la fila más reciente: leemos en orden ascendente y dejamos que las
+  // últimas sobrescriban.
   const { data, error } = await supabase!
     .from(TABLES.consentimientos)
-    .select("categoria, otorgado")
-    .eq(OWNER_COL, userId);
+    .select("categoria, otorgado, creado_en")
+    .eq(OWNER_COL, userId)
+    .order("creado_en", { ascending: true });
   if (error) throw error;
 
   const map: ConsentMap = { ...DEFAULT_CONSENTS };
@@ -51,15 +55,17 @@ export async function setConsent(params: {
     return;
   }
 
-  const { error } = await supabase!.from(TABLES.consentimientos).upsert(
-    {
-      [OWNER_COL]: userId,
-      categoria,
-      otorgado,
-      finalidad,
-      version_documento: version,
-    },
-    { onConflict: `${OWNER_COL},categoria` },
-  );
+  // Nueva fila de historial por cada cambio (no upsert): así queda la
+  // trazabilidad de cuándo se otorgó/revocó cada categoría.
+  const now = new Date().toISOString();
+  const { error } = await supabase!.from(TABLES.consentimientos).insert({
+    [OWNER_COL]: userId,
+    categoria,
+    otorgado,
+    finalidad,
+    version_documento: version,
+    otorgado_en: otorgado ? now : null,
+    revocado_en: otorgado ? null : now,
+  });
   if (error) throw error;
 }

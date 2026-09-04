@@ -1,22 +1,25 @@
 import { supabase } from "@lib/supabase";
 import { isRemote } from "@services/mode";
-import { TABLES } from "@services/schema";
+import { TABLES, OWNER_COL } from "@services/schema";
 import { lget, lset } from "@services/localDb";
 import type { Profile } from "@services/types";
 
+/** perfiles.alias tiene CHECK de longitud 2..60; normalizamos para respetarlo. */
+function normalizeAlias(alias?: string | null): string {
+  const a = (alias ?? "").trim();
+  if (a.length < 2) return "Estudiante";
+  return a.length > 60 ? a.slice(0, 60) : a;
+}
+
 /**
- * Lee el perfil del titular. Si aún no existe fila en `perfiles` (p. ej. justo
- * tras confirmar el correo), la crea a partir de los metadatos de auth.
+ * Lee el perfil del titular. Si aún no existe fila en `perfiles`, la crea a
+ * partir del alias de auth (red de seguridad; normalmente lo crea el trigger).
  */
 export async function fetchProfile(
   userId: string,
-  meta: { alias?: string; email?: string | null },
+  meta: { alias?: string },
 ): Promise<Profile> {
-  const fallback: Profile = {
-    id: userId,
-    alias: meta.alias?.trim() || "Estudiante",
-    email: meta.email ?? null,
-  };
+  const fallback: Profile = { usuario_id: userId, alias: normalizeAlias(meta.alias) };
 
   if (!isRemote()) {
     const stored = await lget<Profile | null>(`profile:${userId}`, null);
@@ -27,24 +30,22 @@ export async function fetchProfile(
 
   const { data, error } = await supabase!
     .from(TABLES.perfiles)
-    .select("id, alias, email")
-    .eq("id", userId)
+    .select("usuario_id, alias")
+    .eq(OWNER_COL, userId)
     .maybeSingle();
   if (error) throw error;
-  if (data) return data as Profile;
+  if (data) return { usuario_id: data.usuario_id, alias: data.alias ?? fallback.alias };
 
-  // Auto-reparación: crea el perfil si el trigger de la BD no lo hizo.
   const { error: upsertError } = await supabase!.from(TABLES.perfiles).upsert(fallback);
   if (upsertError) throw upsertError;
   return fallback;
 }
 
 export async function updateAlias(userId: string, alias: string): Promise<Profile> {
-  const clean = alias.trim() || "Estudiante";
+  const clean = normalizeAlias(alias);
 
   if (!isRemote()) {
-    const stored = await lget<Profile | null>(`profile:${userId}`, null);
-    const next: Profile = { id: userId, alias: clean, email: stored?.email ?? null };
+    const next: Profile = { usuario_id: userId, alias: clean };
     await lset(`profile:${userId}`, next);
     return next;
   }
@@ -52,9 +53,9 @@ export async function updateAlias(userId: string, alias: string): Promise<Profil
   const { data, error } = await supabase!
     .from(TABLES.perfiles)
     .update({ alias: clean })
-    .eq("id", userId)
-    .select("id, alias, email")
+    .eq(OWNER_COL, userId)
+    .select("usuario_id, alias")
     .single();
   if (error) throw error;
-  return data as Profile;
+  return { usuario_id: data.usuario_id, alias: data.alias };
 }

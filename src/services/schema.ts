@@ -1,9 +1,9 @@
 /**
  * Nombres de tablas y columna de titularidad en Supabase.
  *
- * IMPORTANTE: si tu esquema real (ando_schema.sql) usa otro nombre para la
- * columna que apunta a auth.users, cámbialo AQUÍ en un solo sitio.
- * El esquema canónico que espera la app está en `supabase/schema.sql`.
+ * Alineado con el esquema real del proyecto (ando_schema): la columna del
+ * titular es `usuario_id` y en `perfiles` es además la PK (FK a auth.users).
+ * La configuración de RLS/permisos está en `supabase/schema.sql`.
  */
 export const TABLES = {
   perfiles: "perfiles",
@@ -11,5 +11,5 @@ export const TABLES = {
   eventosCrudos: "eventos_crudos",
 } as const;
 
-/** Columna FK al titular (auth.users.id) en las tablas con RLS. */
-export const OWNER_COL = "titular_id";
+/** Columna FK al titular (auth.users.id) presente en todas las tablas con RLS. */
+export const OWNER_COL = "usuario_id";

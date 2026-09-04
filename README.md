@@ -65,13 +65,13 @@ gemelo-digital/
 
 ## Base de datos
 
-El esquema mínimo que la app usa hoy está en [`supabase/schema.sql`](supabase/schema.sql):
-ejecútalo en el SQL Editor de tu proyecto Supabase. Crea `perfiles`, `consentimientos`
-y `eventos_crudos` con Row Level Security por titular y un trigger que crea el perfil
-al registrarse. La columna de titularidad es `titular_id` (si tu esquema usa otro nombre,
-cámbialo en `supabase/schema.sql` **y** en `src/services/schema.ts`).
+La app está alineada con el esquema real del proyecto (`ando_schema`), cuya columna
+de titularidad es `usuario_id` (en `perfiles` es la PK, FK a `auth.users`). Ejecuta
+[`supabase/schema.sql`](supabase/schema.sql) en el SQL Editor: **no crea tablas**,
+sino que activa Row Level Security, concede permisos al rol autenticado y crea el
+trigger que genera el perfil al registrarse.
 
-El esquema completo del proyecto de investigación (`ando_schema.sql`) además define:
+El esquema completo del proyecto de investigación (`ando_schema.sql`) define:
 
 - perfiles, consentimientos, dispositivos, fuentes_datos
 - eventos_crudos con `evento_uuid` idempotente
@@ -85,7 +85,7 @@ Los tipos Zod en `src/schemas` se mantienen alineados con los enumerados del SQL
 ## Notas de arquitectura
 
 - **Capa de datos con TanStack Query.** Los hooks en `src/hooks` (`useProfile`, `useConsents`, `useGemelo`, `useRutina`) leen/escriben vía `src/services`, que hablan con Supabase o, en modo demo, con un almacén local (AsyncStorage). La caché se **persiste offline** (`PersistQueryClientProvider`), así que los datos siguen tras cerrar la app. `authStore` (Zustand) queda solo para la sesión.
-- **Consentimiento persistido.** Cada switch del perfil hace un `upsert` a `consentimientos` (con actualización optimista); ya no es solo estado en memoria.
+- **Consentimiento persistido.** Cada switch del perfil inserta una fila de historial en `consentimientos` (con `otorgado_en` / `revocado_en` y actualización optimista); el estado actual es la fila más reciente por categoría.
 - **"Simular captura" es real.** Inserta un `evento_crudo` y el gemelo/rutina se recalculan desde los eventos del día (pasos, minutos activos, zona, predicción por heurística). El modelo Random Forest sigue siendo trabajo futuro del pipeline.
 - **Privacidad primero.** No se guardan coordenadas exactas: la ubicación se convierte en `zone_id` antes de enviarse.
 - **Consentimiento granular.** Cada categoría (`actividad`, `pasos`, `sueno`, `zona_general`, `wearable`, `fisiologia`, `ambiente`, `notificaciones`, `investigacion`) se activa por separado.

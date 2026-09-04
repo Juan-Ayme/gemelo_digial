@@ -7,12 +7,11 @@ import { fetchProfile, updateAlias } from "@services/profile";
 export function useProfile() {
   const userId = useAuthStore((s) => s.user?.id ?? null);
   const alias = useAuthStore((s) => s.user?.user_metadata?.alias as string | undefined);
-  const email = useAuthStore((s) => s.user?.email ?? null);
 
   return useQuery({
     queryKey: userId ? qk.profile(userId) : ["profile", "anon"],
     enabled: !!userId,
-    queryFn: () => fetchProfile(userId!, { alias, email }),
+    queryFn: () => fetchProfile(userId!, { alias }),
   });
 }
 

@@ -1,9 +1,8 @@
 import type { CategoriaConsentimiento } from "@schemas/consent";
 
 export type Profile = {
-  id: string;
+  usuario_id: string;
   alias: string;
-  email: string | null;
 };
 
 export type ConsentMap = Record<CategoriaConsentimiento, boolean>;
