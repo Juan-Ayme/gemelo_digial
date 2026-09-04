@@ -112,3 +112,15 @@ create policy "eventos: solo el titular"
 
 create index if not exists idx_eventos_titular_inicio
   on public.eventos_crudos (titular_id, inicio_en desc);
+
+-- ----------------------------------------------------------------------------
+-- Permisos de tabla para el rol autenticado.
+--
+-- RLS decide QUÉ FILAS ve cada quien, pero Postgres exige además un GRANT para
+-- que el rol pueda tocar la tabla. Sin esto, PostgREST responde 42501
+-- (permission denied). El rol anónimo (sesión cerrada) NO recibe permisos a
+-- propósito: los datos del titular solo se ven tras iniciar sesión.
+-- ----------------------------------------------------------------------------
+grant select, insert, update, delete on public.perfiles to authenticated;
+grant select, insert, update, delete on public.consentimientos to authenticated;
+grant select, insert, update, delete on public.eventos_crudos to authenticated;
