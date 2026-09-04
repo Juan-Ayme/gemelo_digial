@@ -1,11 +1,4 @@
-import {
-  aggregateRecord,
-  getSdkStatus,
-  initialize,
-  readRecords,
-  requestPermission,
-  SdkAvailabilityStatus,
-} from "react-native-health-connect";
+import Constants from "expo-constants";
 
 import { lget, lset } from "@services/localDb";
 import { nuevoEvento } from "@services/eventoFactory";
@@ -13,9 +6,15 @@ import type { ConsentMap, EventoRow } from "@services/types";
 
 /**
  * Lectura real de Health Connect (Android + development build): pasos, sueño y
- * frecuencia cardiaca de hoy, según el consentimiento del titular. Cada lectura
- * está aislada en try/catch: si un tipo no está disponible, se omite sin romper.
+ * frecuencia cardiaca de hoy, según el consentimiento del titular.
+ *
+ * IMPORTANTE: Expo Go NO incluye este módulo nativo. Por eso:
+ *   1) detectamos Expo Go y salimos sin tocar nada;
+ *   2) la librería se importa de forma DIFERIDA (dynamic import) dentro de un
+ *      try/catch, para que su ausencia nunca rompa el arranque de la app.
  */
+
+const enExpoGo = Constants.appOwnership === "expo";
 
 function rangoDeHoy() {
   const start = new Date();
@@ -34,9 +33,19 @@ export async function leerHealthConnect(
   const quierePasos = consents.pasos;
   const quiereSueno = consents.sueno;
   const quiereRitmo = consents.fisiologia || consents.wearable;
+  if (enExpoGo) return []; // en Expo Go no hay módulos nativos
   if (!quierePasos && !quiereSueno && !quiereRitmo) return [];
 
   try {
+    const {
+      aggregateRecord,
+      getSdkStatus,
+      initialize,
+      readRecords,
+      requestPermission,
+      SdkAvailabilityStatus,
+    } = await import("react-native-health-connect");
+
     const status = await getSdkStatus();
     if (status !== SdkAvailabilityStatus.SDK_AVAILABLE) return [];
     if (!(await initialize())) return [];
@@ -133,6 +142,7 @@ export async function leerHealthConnect(
 
     return eventos;
   } catch {
+    // Módulo no disponible (p. ej. Expo Go) o error de lectura: se omite.
     return [];
   }
 }
