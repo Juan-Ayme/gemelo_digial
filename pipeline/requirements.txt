@@ -1,0 +1,4 @@
+# Pipeline PySpark + Random Forest (correr fuera del teléfono: Colab o PC).
+# El driver JDBC de Postgres lo descarga Spark en tiempo de ejecución
+# (spark.jars.packages = org.postgresql:postgresql), así que no va aquí.
+pyspark>=3.5,<3.6
