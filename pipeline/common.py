@@ -42,10 +42,17 @@ def crear_spark(app: str = "ando-gemelo"):
 JDBC_DRIVER = "org.postgresql.Driver"
 
 
+def _url(url: str) -> str:
+    """Garantiza stringtype=unspecified (necesario para escribir columnas jsonb)."""
+    if "stringtype=" not in url:
+        url = url + ("&" if "?" in url else "?") + "stringtype=unspecified"
+    return url
+
+
 def leer_jdbc(spark, url: str, tabla: str):
     return (
         spark.read.format("jdbc")
-        .option("url", url)
+        .option("url", _url(url))
         .option("driver", JDBC_DRIVER)
         .option("dbtable", f"public.{tabla}")
         .load()
@@ -55,7 +62,7 @@ def leer_jdbc(spark, url: str, tabla: str):
 def escribir_jdbc(df, url: str, tabla: str, mode: str = "append"):
     (
         df.write.format("jdbc")
-        .option("url", url)
+        .option("url", _url(url))
         .option("driver", JDBC_DRIVER)
         .option("dbtable", f"public.{tabla}")
         .mode(mode)
