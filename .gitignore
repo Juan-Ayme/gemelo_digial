@@ -40,3 +40,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Python (pipeline)
+__pycache__/
+*.pyc
+pipeline/.env
