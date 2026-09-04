@@ -106,16 +106,17 @@ Con `REAL_USER_ID=<tu-uuid>` además escribe una predicción para tu usuario rea
 usando ese modelo (útil para ver la predicción del RF en la app con pocos datos
 propios). El `uuid` es tu `usuario_id` (auth.users.id de tu cuenta).
 
-## Clasificador de actividad (dataset UCI HAR)
+## Clasificador de actividad — DATASET REAL (UCI HAR)
 
-1. Descarga **"Human Activity Recognition Using Smartphones"** del UCI ML
-   Repository (busca ese nombre) y descomprime el `.zip`. Queda una carpeta
-   `UCI HAR Dataset/` con `train/` y `test/`.
-2. Ejecuta apuntando `HAR_DIR` a esa carpeta:
-   ```bash
-   HAR_DIR="ruta/UCI HAR Dataset" python pipeline/har_clasificador.py
-   ```
-   Imprime accuracy y F1 del Random Forest sobre las 6 actividades.
+Dataset real de 30 personas con smartphone (UCI ML Repository, dataset 240). El
+script lo **descarga solo** (no hay que bajar nada a mano):
+```bash
+pip install pyspark pandas
+python pipeline/har_clasificador.py
+```
+Imprime accuracy, F1, precision/recall y una **matriz de confusión** del Random
+Forest sobre las 6 actividades reales (WALKING, SITTING, STANDING, LAYING, ...).
+Ideal para exponer con datos reales.
 
 ## Después de correrlo
 
