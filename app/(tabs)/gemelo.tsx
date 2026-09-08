@@ -25,7 +25,7 @@ export default function GemeloTab() {
   const confianza = Math.round((prediccion?.probabilidad ?? 0) * 100);
 
   return (
-    <Screen variant="night" scroll>
+    <Screen scroll>
       <View className="items-center pt-4">
         <Chip label="Estado del gemelo" tone="brand" />
         <GemeloAvatar size={260} />

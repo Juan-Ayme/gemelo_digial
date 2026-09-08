@@ -42,14 +42,10 @@ export function Switch({ value, onValueChange, label, description, disabled }: P
       {(label || description) && (
         <View className="flex-1">
           {label ? (
-            <Text className="text-base font-semibold text-ink-900 dark:text-ink-50">
-              {label}
-            </Text>
+            <Text className="text-base font-semibold text-white">{label}</Text>
           ) : null}
           {description ? (
-            <Text className="text-sm text-ink-500 dark:text-ink-300 mt-0.5">
-              {description}
-            </Text>
+            <Text className="text-sm text-ink-300 mt-0.5">{description}</Text>
           ) : null}
         </View>
       )}

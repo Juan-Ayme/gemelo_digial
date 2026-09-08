@@ -10,21 +10,36 @@
 export const colors = {
   brand: "#3f60f6",
   brandCyan: "#39e7ff",
+  violet: "#a78bfa",
   onPrimary: "#00363d",
   textMuted: "#7d85a3",
   fieldIcon: "#bac9cc",
   inkPlaceholder: "#5b6382",
-  ringTrack: "#dbe6ff",
-  switchOff: "#d5d8e6",
+  ringTrack: "rgba(255,255,255,0.14)",
+  switchOff: "rgba(255,255,255,0.18)",
   white: "#ffffff",
   tabBar: { light: "#ffffff", dark: "#12141c" },
   accent: {
     amber: "#f59e0b",
     violet: "#a78bfa",
     mint: "#4ade80",
-    mintDeep: "#059669",
+    mintDeep: "#34d399",
     coral: "#fb7185",
   },
+} as const;
+
+/**
+ * Tema "cósmico": la app entera vive sobre un cielo profundo. Estos tokens
+ * definen el fondo vivo, el vidrio esmerilado y los brillos de acento.
+ */
+export const cosmic = {
+  /** Degradado de fondo (espacio profundo). */
+  bg: ["#05070F", "#0A0E20", "#141A3A"] as const,
+  /** Degradado de acento para superficies destacadas. */
+  aurora: ["#3F60F6", "#7C5CFF", "#39E7FF"] as const,
+  glow: "#39E7FF",
+  glowSoft: "rgba(57,231,255,0.35)",
+  violet: "#A78BFA",
 } as const;
 
 /** Degradado oscuro compartido por las pantallas de autenticación. */

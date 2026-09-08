@@ -21,16 +21,16 @@ type Props = PressableProps & {
 };
 
 const containerVariant: Record<Variant, string> = {
-  primary: "bg-brand-500 active:bg-brand-600 shadow-lg shadow-brand-500/30",
-  secondary: "bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700",
-  ghost: "bg-transparent",
-  danger: "bg-accent-coral",
+  primary: "bg-brand-500 active:bg-brand-600 shadow-lg shadow-brand-500/40",
+  secondary: "bg-white/10 border border-white/15",
+  ghost: "bg-transparent border border-white/15",
+  danger: "bg-rose-500 active:bg-rose-600",
 };
 
 const textVariant: Record<Variant, string> = {
-  primary: "text-white",
-  secondary: "text-ink-900 dark:text-ink-50",
-  ghost: "text-brand-500",
+  primary: "text-ink-950",
+  secondary: "text-white",
+  ghost: "text-brand-300",
   danger: "text-white",
 };
 
@@ -91,7 +91,7 @@ export function Button({
         className="flex-row items-center gap-2"
       >
         {loading ? (
-          <ActivityIndicator size="small" color={variant === "primary" ? colors.white : colors.brand} />
+          <ActivityIndicator size="small" color={variant === "primary" ? "#0b1020" : colors.brandCyan} />
         ) : (
           leadingIcon
         )}

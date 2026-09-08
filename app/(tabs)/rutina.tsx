@@ -13,8 +13,8 @@ export default function Rutina() {
   return (
     <Screen scroll>
       <View className="gap-1">
-        <Text className="text-3xl font-bold text-ink-900 dark:text-ink-50">Rutina de hoy</Text>
-        <Text className="text-base text-ink-500 dark:text-ink-300">
+        <Text className="text-3xl font-bold text-white">Rutina de hoy</Text>
+        <Text className="text-base text-ink-300">
           Línea base construida a partir de tus ventanas de actividad.
         </Text>
       </View>
@@ -36,18 +36,18 @@ export default function Rutina() {
               className="flex-row items-center gap-3 py-3"
             >
               <View className="w-14">
-                <Text className="text-sm font-semibold text-ink-900 dark:text-ink-50">
+                <Text className="text-sm font-semibold text-white">
                   {bloque.hora}
                 </Text>
               </View>
               <View className="flex-1">
-                <Text className="text-base font-semibold text-ink-900 dark:text-ink-50">
+                <Text className="text-base font-semibold text-white">
                   {bloque.actividad}
                 </Text>
-                <Text className="text-xs text-ink-500 dark:text-ink-300 mt-0.5">
+                <Text className="text-xs text-ink-300 mt-0.5">
                   {bloque.detalle}
                 </Text>
-                <View className="h-1.5 bg-ink-100 dark:bg-ink-800 rounded-full mt-2 overflow-hidden">
+                <View className="h-1.5 bg-white/10 rounded-full mt-2 overflow-hidden">
                   <MotiView
                     from={{ width: "0%" }}
                     animate={{ width: `${Math.round(bloque.intensidad * 100)}%` }}
@@ -61,10 +61,10 @@ export default function Rutina() {
         </Card>
       ) : (
         <Card className="mt-6" delay={100}>
-          <Text className="text-base font-semibold text-ink-900 dark:text-ink-50">
+          <Text className="text-base font-semibold text-white">
             Todavía no hay ventanas hoy
           </Text>
-          <Text className="text-sm text-ink-500 dark:text-ink-300 mt-1">
+          <Text className="text-sm text-ink-300 mt-1">
             Ve a la pestaña "Hoy" y registra una ventana simulada para empezar a
             construir tu línea base.
           </Text>
@@ -75,12 +75,12 @@ export default function Rutina() {
         <Text className="text-xs uppercase tracking-widest text-ink-400">
           Observación descriptiva
         </Text>
-        <Text className="text-base text-ink-800 dark:text-ink-100 mt-2 leading-6">
+        <Text className="text-base text-ink-100 mt-2 leading-6">
           {hayBloques
             ? "Tu rutina se mantiene dentro de tu línea base personal. No se ha detectado ninguna variación persistente."
             : "Cuando tengas varias ventanas registradas verás aquí observaciones sobre tu rutina."}
         </Text>
-        <Text className="text-xs text-ink-500 dark:text-ink-300 mt-3">
+        <Text className="text-xs text-ink-300 mt-3">
           Los patrones no son diagnóstico médico. Pueden explicarse por horarios,
           viajes u otros factores que los sensores no conocen.
         </Text>

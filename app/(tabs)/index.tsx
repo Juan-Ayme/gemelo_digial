@@ -14,6 +14,7 @@ import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
 import { Chip } from "@components/ui/Chip";
 import { Button } from "@components/ui/Button";
+import { AnimatedNumber } from "@components/ui/AnimatedNumber";
 import { ConfianzaRing } from "@components/gemelo/ConfianzaRing";
 import { useProfile } from "@hooks/useProfile";
 import { useConsents } from "@hooks/useConsents";
@@ -37,96 +38,66 @@ export default function Hoy() {
   return (
     <Screen scroll>
       <View className="flex-row items-start justify-between">
-        <View>
-          <Text className="text-sm uppercase tracking-widest text-ink-400">
+        <View className="flex-1 pr-3">
+          <Text className="text-xs uppercase tracking-[3px]" style={{ color: colors.brandCyan }}>
             {hoy}
           </Text>
-          <Text className="text-3xl font-bold text-ink-900 dark:text-ink-50 mt-1">
-            Hola, {alias}
-          </Text>
+          <Text className="text-3xl font-bold text-white mt-1">Hola, {alias}</Text>
         </View>
         <Chip
           label="Gemelo activo"
           tone="mint"
-          leadingIcon={<Sparkles size={12} color={colors.accent.mintDeep} />}
+          leadingIcon={<Sparkles size={12} color={colors.accent.mint} />}
         />
       </View>
 
       {prediccion ? (
-        <Card className="mt-6" delay={80}>
+        <Card hero className="mt-6" delay={80}>
           <View className="flex-row items-center gap-4">
             <ConfianzaRing probabilidad={prediccion.probabilidad} />
             <View className="flex-1">
-              <Text className="text-xs uppercase tracking-widest text-ink-500">
+              <Text className="text-[11px] uppercase tracking-widest text-ink-300">
                 Próxima actividad probable
               </Text>
-              <Text className="text-2xl font-bold text-ink-900 dark:text-ink-50 mt-1">
+              <Text className="text-2xl font-bold text-white mt-1">
                 {ACTIVIDAD_LABELS[prediccion.actividad] ?? prediccion.actividad}
               </Text>
-              <Text className="text-sm text-ink-500 dark:text-ink-300 mt-1">
+              <Text className="text-sm text-ink-300 mt-1">
                 Horizonte {prediccion.horizonteMin} min · {prediccion.variablesRelevantes.length} variables
               </Text>
             </View>
           </View>
-          <View className="mt-4 rounded-2xl bg-brand-50 dark:bg-brand-900/20 p-3">
-            <Text className="text-sm text-brand-700 dark:text-brand-100">
-              {prediccion.explicacion}
-            </Text>
+          <View className="mt-4 rounded-2xl bg-white/5 border border-white/10 p-3">
+            <Text className="text-sm text-ink-100 leading-5">{prediccion.explicacion}</Text>
           </View>
         </Card>
       ) : (
-        <Card className="mt-6" delay={80}>
-          <Text className="text-lg font-semibold text-ink-900 dark:text-ink-50">
-            Aún sin predicción
-          </Text>
-          <Text className="text-sm text-ink-500 dark:text-ink-300 mt-1">
-            Registra al menos dos ventanas de actividad para que el gemelo empiece
-            a estimar tu próxima actividad.
+        <Card hero className="mt-6" delay={80}>
+          <Text className="text-lg font-semibold text-white">Tu gemelo está despertando</Text>
+          <Text className="text-sm text-ink-300 mt-1 leading-5">
+            Registra un par de ventanas de actividad y empezaré a anticipar tu próxima
+            actividad.
           </Text>
         </Card>
       )}
 
       <View className="mt-4 flex-row gap-3">
-        <StatTile
-          icon={<Footprints size={18} color={colors.brand} />}
-          label="Pasos"
-          value={(gemelo?.pasosHoy ?? 0).toLocaleString("es-PE")}
-          delay={140}
-        />
-        <StatTile
-          icon={<Timer size={18} color={colors.accent.amber} />}
-          label="Min. activos"
-          value={`${gemelo?.minutosActivos ?? 0}`}
-          delay={180}
-        />
+        <StatTile icon={<Footprints size={18} color={colors.brandCyan} />} label="Pasos" value={gemelo?.pasosHoy ?? 0} delay={140} />
+        <StatTile icon={<Timer size={18} color={colors.accent.amber} />} label="Min. activos" value={gemelo?.minutosActivos ?? 0} delay={180} />
       </View>
-
       <View className="mt-3 flex-row gap-3">
-        <StatTile
-          icon={<MoonStar size={18} color={colors.accent.violet} />}
-          label="Descanso"
-          value={`${Math.round((gemelo?.minutosDescanso ?? 0) / 60)} h`}
-          delay={220}
-        />
-        <StatTile
-          icon={<Compass size={18} color={colors.accent.mint} />}
-          label="Zona"
-          value={gemelo?.zonaActual ?? "—"}
-          delay={260}
-        />
+        <StatTile icon={<MoonStar size={18} color={colors.accent.violet} />} label="Descanso" value={`${Math.round((gemelo?.minutosDescanso ?? 0) / 60)} h`} delay={220} />
+        <StatTile icon={<Compass size={18} color={colors.accent.mint} />} label="Zona" value={gemelo?.zonaActual ?? "—"} delay={260} />
       </View>
 
       <Card className="mt-6" delay={320}>
         <View className="flex-row items-center gap-3">
-          <ActivitySquare size={20} color={colors.brand} />
-          <Text className="text-lg font-semibold text-ink-900 dark:text-ink-50">
-            Sensores del teléfono
-          </Text>
+          <ActivitySquare size={20} color={colors.brandCyan} />
+          <Text className="text-lg font-semibold text-white">Sensores del teléfono</Text>
         </View>
-        <Text className="text-sm text-ink-500 dark:text-ink-300 mt-2">
-          Lee tu actividad (movimiento), zona general y pasos según los permisos que
-          hayas activado en Perfil. Sueño y wearables requieren un development build
-          (Health Connect).
+        <Text className="text-sm text-ink-300 mt-2 leading-5">
+          Lee tu actividad (movimiento), zona general y pasos según los permisos que hayas
+          activado en Perfil. Sueño y wearables requieren un development build (Health Connect).
         </Text>
         <Button
           className="mt-4"
@@ -172,20 +143,24 @@ function StatTile({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  value: number | string;
   delay?: number;
 }) {
   return (
     <Card className="flex-1" delay={delay}>
       <View className="flex-row items-center gap-2">
         {icon}
-        <Text className="text-xs uppercase tracking-widest text-ink-400">
-          {label}
-        </Text>
+        <Text className="text-[11px] uppercase tracking-widest text-ink-300">{label}</Text>
       </View>
-      <Text className="text-2xl font-bold text-ink-900 dark:text-ink-50 mt-2">
-        {value}
-      </Text>
+      {typeof value === "number" ? (
+        <AnimatedNumber
+          value={value}
+          format={(n) => n.toLocaleString("es-PE")}
+          className="text-2xl font-bold text-white mt-2"
+        />
+      ) : (
+        <Text className="text-2xl font-bold text-white mt-2">{value}</Text>
+      )}
     </Card>
   );
 }

@@ -4,67 +4,69 @@ import { ScrollView, View, type ScrollViewProps, type ViewProps } from "react-na
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { cn } from "@lib/cn";
-import { gradients } from "@theme/colors";
+import { Stars } from "@components/gemelo/Stars";
+import { cosmic } from "@theme/colors";
 
 type Props = ViewProps & {
   scroll?: boolean;
   padded?: boolean;
-  variant?: "plain" | "night" | "soft";
+  /** Partículas de fondo. `false` las desactiva. */
+  stars?: number | false;
   scrollProps?: ScrollViewProps;
   edges?: readonly ("top" | "bottom" | "left" | "right")[];
+  /** Deja hueco para la barra de pestañas flotante. */
+  tabBarSpace?: boolean;
 };
 
-const backgroundClass = {
-  plain: "bg-ink-50 dark:bg-ink-950",
-  night: "bg-brand-950",
-  soft: "bg-brand-50 dark:bg-ink-950",
-};
-
+/**
+ * Lienzo inmersivo de la app: cielo profundo con degradado + partículas vivas.
+ * Todas las pantallas comparten este fondo para que la experiencia se sienta
+ * continua (nada de saltos entre pantallas claras y oscuras).
+ */
 export function Screen({
   children,
   className,
   scroll = false,
   padded = true,
-  variant = "plain",
+  stars = 26,
   scrollProps,
   edges = ["top", "left", "right"],
+  tabBarSpace = true,
   ...rest
 }: Props) {
-  const paddingClass = padded ? "px-5 pt-4 pb-8" : "";
-  const useGradient = variant === "night";
-
-  const inner = (
-    <View className={cn("flex-1", paddingClass, className)} {...rest}>
-      {children}
-    </View>
-  );
+  const padding = padded ? "px-5 pt-4" : "";
+  const bottom = tabBarSpace ? "pb-36" : "pb-10";
 
   return (
-    <SafeAreaView className={cn("flex-1", backgroundClass[variant])} edges={edges}>
-      <StatusBar style={variant === "night" ? "light" : "auto"} />
-      {useGradient && (
-        <LinearGradient
-          colors={gradients.night}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          className="absolute inset-0"
-        />
-      )}
-      {scroll ? (
-        <ScrollView
-          contentContainerClassName={cn(paddingClass)}
-          className="flex-1"
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          {...scrollProps}
-        >
-          <View className={cn(className)} {...rest}>
+    <View className="flex-1" style={{ backgroundColor: cosmic.bg[0] }}>
+      <StatusBar style="light" />
+      <LinearGradient
+        colors={cosmic.bg}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        className="absolute inset-0"
+      />
+      {stars === false ? null : <Stars count={stars} />}
+
+      <SafeAreaView className="flex-1" edges={edges}>
+        {scroll ? (
+          <ScrollView
+            className="flex-1"
+            contentContainerClassName={cn(padding, bottom)}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            {...scrollProps}
+          >
+            <View className={cn(className)} {...rest}>
+              {children}
+            </View>
+          </ScrollView>
+        ) : (
+          <View className={cn("flex-1", padding, bottom, className)} {...rest}>
             {children}
           </View>
-        </ScrollView>
-      ) : (
-        inner
-      )}
-    </SafeAreaView>
+        )}
+      </SafeAreaView>
+    </View>
   );
 }

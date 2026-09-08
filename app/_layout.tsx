@@ -6,6 +6,7 @@ import { Slot, SplashScreen } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { StyleSheet as NWStyleSheet } from "nativewind";
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -20,6 +21,18 @@ import {
 
 import { useAuthStore } from "@stores/authStore";
 import { asyncStoragePersister, queryClient } from "@lib/queryClient";
+
+// En web, NativeWind lanza "dark mode is type 'media'" si algo intenta fijar el
+// esquema. Fijamos el flag a 'class' para evitarlo. La app usa colores claros
+// explícitos (no clases dark:), así que no cambia nada visual.
+try {
+  (NWStyleSheet as unknown as { setFlag?: (k: string, v: string) => void }).setFlag?.(
+    "darkMode",
+    "class",
+  );
+} catch {
+  /* no-op en nativo */
+}
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 

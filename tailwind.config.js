@@ -6,6 +6,7 @@ module.exports = {
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
   presets: [require("nativewind/preset")],
+  darkMode: "class", // evita que NativeWind lance "dark mode is type 'media'"
   theme: {
     extend: {
       colors: {

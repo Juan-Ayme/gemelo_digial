@@ -25,8 +25,8 @@ export default function Perfil() {
   return (
     <Screen scroll>
       <View>
-        <Text className="text-3xl font-bold text-ink-900 dark:text-ink-50">Perfil</Text>
-        <Text className="text-base text-ink-500 dark:text-ink-300 mt-1">
+        <Text className="text-3xl font-bold text-white">Perfil</Text>
+        <Text className="text-base text-ink-300 mt-1">
           {alias} · {config.app.institution}
         </Text>
       </View>
@@ -34,11 +34,11 @@ export default function Perfil() {
       <Card className="mt-6">
         <View className="flex-row items-center gap-3">
           <Shield size={20} color={colors.brand} />
-          <Text className="text-lg font-semibold text-ink-900 dark:text-ink-50">
+          <Text className="text-lg font-semibold text-white">
             Consentimientos granulares
           </Text>
         </View>
-        <Text className="text-sm text-ink-500 dark:text-ink-300 mt-1">
+        <Text className="text-sm text-ink-300 mt-1">
           Activa solo lo que quieras. Puedes revocar cuando desees.
         </Text>
         <Chip
@@ -50,7 +50,7 @@ export default function Perfil() {
           {CATALOGO_CONSENTIMIENTOS.map((item) => (
             <View
               key={item.categoria}
-              className="border-t border-ink-100 dark:border-ink-800 py-3"
+              className="border-t border-white/10 py-3"
             >
               <Switch
                 value={consents?.[item.categoria] ?? false}
@@ -64,7 +64,7 @@ export default function Perfil() {
                 label={item.titulo}
                 description={item.finalidad}
               />
-              <Text className="text-xs text-ink-400 dark:text-ink-500 mt-1 ml-[60px]">
+              <Text className="text-xs text-ink-400 mt-1 ml-[60px]">
                 {item.ejemplo}
               </Text>
             </View>
@@ -73,10 +73,10 @@ export default function Perfil() {
       </Card>
 
       <Card className="mt-4">
-        <Text className="text-lg font-semibold text-ink-900 dark:text-ink-50">
+        <Text className="text-lg font-semibold text-white">
           Tus datos
         </Text>
-        <Text className="text-sm text-ink-500 dark:text-ink-300 mt-1">
+        <Text className="text-sm text-ink-300 mt-1">
           Los derechos ARCO se atienden desde aquí.
         </Text>
         <View className="mt-3 gap-2">
