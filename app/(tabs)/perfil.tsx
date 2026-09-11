@@ -20,7 +20,7 @@ export default function Perfil() {
   const setConsent = useSetConsent();
   const signOut = useAuthStore((s) => s.signOut);
   const { data: profile } = useProfile();
-  const alias = profile?.alias ?? "Estudiante";
+  const alias = profile?.alias ?? "Usuario";
 
   return (
     <Screen scroll>

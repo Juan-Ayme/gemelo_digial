@@ -1,6 +1,6 @@
 # ando · Gemelo Digital
 
-Aplicativo móvil del proyecto **"Desarrollo de un gemelo digital personal basado en Random Forest y Big Data para la predicción de actividades cotidianas de estudiantes universitarios"** — La Pontificia, Ayacucho, 2026.
+Aplicativo móvil del proyecto **"Desarrollo de un gemelo digital personal basado en Random Forest y Big Data para la predicción de actividades cotidianas de personas"** — Ayacucho, 2026.
 
 Stack: React Native · Expo SDK 57 · TypeScript · Expo Router · NativeWind v4 · **TanStack Query** (caché offline) · Zustand · Zod · React Hook Form · Reanimated 4 · Moti · Supabase.
 

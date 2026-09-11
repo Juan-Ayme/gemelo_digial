@@ -80,7 +80,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     queryClient.clear();
   },
 
-  enterDemo(alias = "Estudiante") {
+  enterDemo(alias = "Usuario") {
     set({
       demoMode: true,
       session: null,

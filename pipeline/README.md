@@ -13,7 +13,7 @@ resultados en `caracteristicas_actividad`, `versiones_modelo` y `predicciones`.
 
 | Script | Qué hace | Necesita |
 |---|---|---|
-| `bootstrap_sintetico.py` | **Arranque en frío**: entrena el RF de "próxima actividad" con rutinas estudiantiles **generadas**. Da un modelo funcionando YA. | Nada (o Supabase para registrarlo) |
+| `bootstrap_sintetico.py` | **Arranque en frío**: entrena el RF de "próxima actividad" con rutinas cotidianas **generadas**. Da un modelo funcionando YA. | Nada (o Supabase para registrarlo) |
 | `gemelo_pipeline.py` | Igual pero con tus **datos reales** de `eventos_crudos`. Escribe caracteristicas + modelo + predicciones. | `SUPABASE_DB_URL` |
 | `har_clasificador.py` | Clasificador de actividad desde sensores con el **dataset público UCI HAR**. Otro sub-problema (reconocer la actividad actual). | dataset UCI HAR |
 

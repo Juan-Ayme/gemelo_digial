@@ -2,7 +2,7 @@
 Bootstrap sintético — Random Forest de arranque en frío
 =======================================================
 
-Entrena el modelo de "próxima actividad" con rutinas estudiantiles GENERADAS
+Entrena el modelo de "próxima actividad" con rutinas cotidianas GENERADAS
 (no reales), para tener un modelo funcionando ANTES de acumular datos propios.
 Usa exactamente las mismas features que el pipeline real (common.py), así el
 modelo encaja con lo que la app produce.
@@ -40,14 +40,15 @@ def genera_dia(uid: str, fecha: dt.date):
     filas = []
     finde = fecha.weekday() >= 5
     if finde:
-        plan = [(8, "permanencia", "Hogar"), (10, "descanso", "Hogar"),
+        plan = [(8, "permanencia", "Hogar"), (10, "ocio", "Hogar"),
                 (12, "actividad_fisica", "Tránsito"), (15, "estudio", "Hogar"),
-                (19, "descanso", "Hogar")]
+                (17, "ocio", "Zona común"), (19, "descanso", "Hogar")]
     else:
         plan = [(7, "permanencia", "Hogar"), (8, "desplazamiento", "Tránsito"),
-                (9, "clase", "Campus"), (12, "descanso", "Campus"),
-                (14, "estudio", "Campus"), (17, "actividad_fisica", "Campus"),
-                (18, "desplazamiento", "Tránsito"), (20, "permanencia", "Hogar")]
+                (9, "trabajo", "Trabajo"), (12, "descanso", "Trabajo"),
+                (14, "trabajo", "Trabajo"), (17, "actividad_fisica", "Zona común"),
+                (18, "desplazamiento", "Tránsito"), (19, "estudio", "Hogar"),
+                (21, "ocio", "Hogar")]
     for hora, act, zona in plan:
         if random.random() < 0.15:  # ruido: a veces se salta un bloque
             continue

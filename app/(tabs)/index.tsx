@@ -29,7 +29,7 @@ export default function Hoy() {
   const simular = useSimularCaptura();
   const capturar = useCapturarSensores();
 
-  const alias = profile?.alias ?? "Estudiante";
+  const alias = profile?.alias ?? "Usuario";
   const hoy = format(new Date(), "EEEE d 'de' MMMM", { locale: es });
   const prediccion = gemelo?.prediccion ?? null;
   const sinDatos = (gemelo?.totalEventos ?? 0) === 0;

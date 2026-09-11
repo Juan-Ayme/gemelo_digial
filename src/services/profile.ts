@@ -7,7 +7,7 @@ import type { Profile } from "@services/types";
 /** perfiles.alias tiene CHECK de longitud 2..60; normalizamos para respetarlo. */
 function normalizeAlias(alias?: string | null): string {
   const a = (alias ?? "").trim();
-  if (a.length < 2) return "Estudiante";
+  if (a.length < 2) return "Usuario";
   return a.length > 60 ? a.slice(0, 60) : a;
 }
 

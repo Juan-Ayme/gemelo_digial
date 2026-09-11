@@ -16,13 +16,14 @@ import {
 
 const ACTIVIDADES: ActividadPredicha[] = [
   "desplazamiento",
-  "clase",
+  "trabajo",
   "estudio",
   "descanso",
   "actividad_fisica",
+  "ocio",
   "permanencia",
 ];
-const ZONAS = ["Campus", "Hogar", "Tránsito", "Zona común"];
+const ZONAS = ["Hogar", "Trabajo", "Tránsito", "Zona común"];
 
 // --- Lectura / escritura ---------------------------------------------------
 
@@ -191,10 +192,12 @@ export function buildRutina(events: EventoRow[]): RutinaBloque[] {
         return 0.9;
       case "desplazamiento":
         return 0.7;
+      case "trabajo":
+        return 0.55;
       case "estudio":
         return 0.5;
-      case "clase":
-        return 0.45;
+      case "ocio":
+        return 0.4;
       case "permanencia":
         return 0.3;
       case "descanso":

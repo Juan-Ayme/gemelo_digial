@@ -9,10 +9,11 @@ export type ConsentMap = Record<CategoriaConsentimiento, boolean>;
 
 export type ActividadPredicha =
   | "desplazamiento"
-  | "clase"
+  | "trabajo"
   | "estudio"
   | "descanso"
   | "actividad_fisica"
+  | "ocio"
   | "permanencia";
 
 export type NivelVariacion =
@@ -77,9 +78,10 @@ export type RutinaBloque = {
 
 export const ACTIVIDAD_LABELS: Record<ActividadPredicha, string> = {
   desplazamiento: "Desplazamiento",
-  clase: "Clase",
+  trabajo: "Trabajo",
   estudio: "Estudio",
   descanso: "Descanso",
   actividad_fisica: "Actividad física",
+  ocio: "Ocio",
   permanencia: "Permanencia",
 };

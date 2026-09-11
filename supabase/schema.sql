@@ -25,7 +25,7 @@ begin
   insert into public.perfiles (usuario_id, alias)
   values (
     new.id,
-    coalesce(nullif(trim(new.raw_user_meta_data ->> 'alias'), ''), 'Estudiante')
+    coalesce(nullif(trim(new.raw_user_meta_data ->> 'alias'), ''), 'Usuario')
   )
   on conflict (usuario_id) do nothing;
   return new;

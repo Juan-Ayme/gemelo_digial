@@ -1,6 +1,6 @@
 /**
  * Traduce los mensajes crudos de Supabase Auth a español legible para el
- * estudiante. Cuando el mensaje no coincide, devuelve el original recortado.
+ * persona usuaria. Cuando el mensaje no coincide, devuelve el original recortado.
  */
 const DICT: Array<[RegExp, string]> = [
   [/invalid login credentials/i, "Correo o contraseña incorrectos."],
