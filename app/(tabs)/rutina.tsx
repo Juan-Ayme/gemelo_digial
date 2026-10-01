@@ -1,88 +1,264 @@
 import { Text, View } from "react-native";
 import { MotiView } from "moti";
+import {
+  Activity,
+  Armchair,
+  Briefcase,
+  Clock,
+  Coffee,
+  Dumbbell,
+  Footprints,
+  GraduationCap,
+  Layers,
+  MapPin,
+  Moon,
+  Sparkles,
+} from "lucide-react-native";
 
 import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
 import { Chip } from "@components/ui/Chip";
-import { useRutina } from "@hooks/useGemelo";
+import { useRutina, useGemelo } from "@hooks/useGemelo";
+import type { ActividadPredicha } from "@services/types";
+import { colors } from "@theme/colors";
+
+function getActividadConfig(act?: ActividadPredicha | string) {
+  switch (act) {
+    case "actividad_fisica":
+      return {
+        Icon: Dumbbell,
+        color: colors.accent.mint,
+        bg: "bg-emerald-500/10",
+        border: "border-emerald-500/30",
+        barColor: "bg-emerald-400",
+        dotColor: "#39efa2",
+      };
+    case "desplazamiento":
+      return {
+        Icon: Footprints,
+        color: colors.accent.amber,
+        bg: "bg-amber-500/10",
+        border: "border-amber-500/30",
+        barColor: "bg-amber-400",
+        dotColor: "#f59e0b",
+      };
+    case "trabajo":
+      return {
+        Icon: Briefcase,
+        color: colors.brandCyan,
+        bg: "bg-cyan-500/10",
+        border: "border-cyan-500/30",
+        barColor: "bg-cyan-400",
+        dotColor: "#39e7ff",
+      };
+    case "estudio":
+      return {
+        Icon: GraduationCap,
+        color: colors.violet,
+        bg: "bg-violet-500/10",
+        border: "border-violet-500/30",
+        barColor: "bg-violet-400",
+        dotColor: "#cfbdff",
+      };
+    case "descanso":
+      return {
+        Icon: Moon,
+        color: "#6288FF",
+        bg: "bg-blue-500/10",
+        border: "border-blue-500/30",
+        barColor: "bg-blue-400",
+        dotColor: "#6288FF",
+      };
+    case "ocio":
+      return {
+        Icon: Coffee,
+        color: colors.accent.coral,
+        bg: "bg-rose-500/10",
+        border: "border-rose-500/30",
+        barColor: "bg-rose-400",
+        dotColor: "#ffb4ab",
+      };
+    case "permanencia":
+    default:
+      return {
+        Icon: Armchair,
+        color: "#94a3b8",
+        bg: "bg-slate-500/10",
+        border: "border-slate-500/30",
+        barColor: "bg-slate-400",
+        dotColor: "#94a3b8",
+      };
+  }
+}
 
 export default function Rutina() {
   const { data: bloques = [] } = useRutina();
+  const { data: gemelo } = useGemelo();
   const hayBloques = bloques.length > 0;
+  const esRF = gemelo?.fuentePrediccion === "rf";
+
+  // Total de ventanas individuales procesadas dentro de los bloques
+  const totalVentanas = bloques.reduce((acc, b) => acc + (b.cantidadVentanas ?? 1), 0);
 
   return (
     <Screen scroll>
       <View className="gap-1">
         <Text className="text-3xl font-bold text-white">Rutina de hoy</Text>
         <Text className="text-base text-ink-300">
-          Línea base construida a partir de tus ventanas de actividad.
+          Línea base inteligente construida a partir de tus ventanas de actividad.
         </Text>
       </View>
 
       <View className="flex-row gap-2 mt-4 flex-wrap">
-        <Chip label={hayBloques ? "En seguimiento" : "Sin datos"} tone={hayBloques ? "mint" : "neutral"} />
-        <Chip label={`${bloques.length} ventanas`} tone="brand" />
-        <Chip label="v1.0 modelo" tone="violet" />
+        <Chip
+          label={hayBloques ? "En seguimiento" : "Sin datos"}
+          tone={hayBloques ? "mint" : "neutral"}
+          leadingIcon={
+            hayBloques ? (
+              <Activity size={12} color={colors.accent.mint} />
+            ) : undefined
+          }
+        />
+        <Chip
+          label={`${bloques.length} ${bloques.length === 1 ? "bloque" : "bloques"} (${totalVentanas} vent.)`}
+          tone="brand"
+          leadingIcon={<Layers size={12} color={colors.brandCyan} />}
+        />
+        <Chip
+          label={esRF ? "v1.0 Random Forest" : "v1.0 Heurística"}
+          tone="violet"
+          leadingIcon={<Sparkles size={12} color={colors.violet} />}
+        />
       </View>
 
       {hayBloques ? (
-        <Card className="mt-6" delay={100}>
-          {bloques.map((bloque, i) => (
-            <MotiView
-              key={`${bloque.hora}-${i}`}
-              from={{ opacity: 0, translateX: -12 }}
-              animate={{ opacity: 1, translateX: 0 }}
-              transition={{ type: "timing", duration: 280, delay: i * 60 }}
-              className="flex-row items-center gap-3 py-3"
-            >
-              <View className="w-14">
-                <Text className="text-sm font-semibold text-white">
-                  {bloque.hora}
-                </Text>
-              </View>
-              <View className="flex-1">
-                <Text className="text-base font-semibold text-white">
-                  {bloque.actividad}
-                </Text>
-                <Text className="text-xs text-ink-300 mt-0.5">
-                  {bloque.detalle}
-                </Text>
-                <View className="h-1.5 bg-white/10 rounded-full mt-2 overflow-hidden">
-                  <MotiView
-                    from={{ width: "0%" }}
-                    animate={{ width: `${Math.round(bloque.intensidad * 100)}%` }}
-                    transition={{ type: "timing", duration: 500, delay: i * 60 + 200 }}
-                    className="h-full bg-brand-500"
-                  />
+        <View className="mt-6">
+          {bloques.map((bloque, i) => {
+            const cfg = getActividadConfig(bloque.tipoActividad);
+            const Icon = cfg.Icon;
+            const esUltimo = i === bloques.length - 1;
+
+            return (
+              <MotiView
+                key={`${bloque.hora}-${i}`}
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: "timing", duration: 320, delay: i * 70 }}
+                className="flex-row items-stretch"
+              >
+                {/* ── Columna de tiempo y línea conectora ── */}
+                <View className="w-16 items-end pr-3 pt-1">
+                  <Text className="text-xs font-semibold text-white/90">
+                    {bloque.horaInicio ?? bloque.hora}
+                  </Text>
+                  {bloque.horaFin && bloque.horaFin !== bloque.horaInicio ? (
+                    <Text className="text-[10px] text-ink-400 mt-0.5">
+                      {bloque.horaFin}
+                    </Text>
+                  ) : null}
                 </View>
-              </View>
-            </MotiView>
-          ))}
-        </Card>
+
+                {/* ── Eje vertical de la línea de tiempo ── */}
+                <View className="items-center mr-3">
+                  <View
+                    className="w-3 h-3 rounded-full mt-1.5 border-2 border-surface-900"
+                    style={{ backgroundColor: cfg.dotColor }}
+                  />
+                  {!esUltimo && (
+                    <View className="w-0.5 flex-1 bg-white/10 my-1" />
+                  )}
+                </View>
+
+                {/* ── Tarjeta del bloque de actividad ── */}
+                <View className="flex-1 mb-3">
+                  <Card glass className="p-3.5 border border-white/10">
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center gap-2 flex-1">
+                        <View className={`w-8 h-8 rounded-xl items-center justify-center ${cfg.bg} border ${cfg.border}`}>
+                          <Icon size={16} color={cfg.color} />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-base font-semibold text-white">
+                            {bloque.actividad}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Pill de duración o ventanas */}
+                      {(bloque.duracionMin && bloque.duracionMin > 1) ? (
+                        <View className="flex-row items-center gap-1 bg-white/10 rounded-full px-2 py-0.5">
+                          <Clock size={10} color={colors.textMuted} />
+                          <Text className="text-[11px] text-ink-200 font-medium">
+                            {bloque.duracionMin} min
+                          </Text>
+                        </View>
+                      ) : (bloque.cantidadVentanas && bloque.cantidadVentanas > 1) ? (
+                        <View className="flex-row items-center gap-1 bg-white/10 rounded-full px-2 py-0.5">
+                          <Layers size={10} color={colors.textMuted} />
+                          <Text className="text-[11px] text-ink-200 font-medium">
+                            {bloque.cantidadVentanas} vent.
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+
+                    {/* Metadatos: Zona y Confianza */}
+                    <View className="flex-row items-center gap-3 mt-2 flex-wrap">
+                      <View className="flex-row items-center gap-1">
+                        <MapPin size={11} color={colors.accent.mint} />
+                        <Text className="text-xs text-ink-300">
+                          {bloque.zona ? bloque.zona : "Sin zona detectada"}
+                        </Text>
+                      </View>
+
+                      {bloque.confianza != null ? (
+                        <View className="flex-row items-center gap-1 bg-white/5 rounded-md px-1.5 py-0.5">
+                          <Sparkles size={10} color={colors.brandCyan} />
+                          <Text className="text-[11px] text-brand-200">
+                            {bloque.confianza}% confianza
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+
+                    {/* Barra sutil de intensidad */}
+                    <View className="h-1 bg-white/5 rounded-full mt-3 overflow-hidden">
+                      <MotiView
+                        from={{ width: "0%" }}
+                        animate={{ width: `${Math.round(bloque.intensidad * 100)}%` }}
+                        transition={{ type: "timing", duration: 450, delay: i * 50 + 150 }}
+                        className={`h-full ${cfg.barColor}`}
+                      />
+                    </View>
+                  </Card>
+                </View>
+              </MotiView>
+            );
+          })}
+        </View>
       ) : (
         <Card className="mt-6" delay={100}>
           <Text className="text-base font-semibold text-white">
             Todavía no hay ventanas hoy
           </Text>
-          <Text className="text-sm text-ink-300 mt-1">
-            Ve a la pestaña "Hoy" y registra una ventana simulada para empezar a
-            construir tu línea base.
+          <Text className="text-sm text-ink-300 mt-1 leading-5">
+            Tus sensores registran automáticamente tus actividades en segundo plano.
+            También puedes registrar una ventana de prueba en la pestaña "Hoy".
           </Text>
         </Card>
       )}
 
-      <Card className="mt-4" delay={hayBloques ? 500 : 200}>
+      <Card className="mt-2" delay={hayBloques ? 400 : 200}>
         <Text className="text-xs uppercase tracking-widest text-ink-400">
           Observación descriptiva
         </Text>
         <Text className="text-base text-ink-100 mt-2 leading-6">
           {hayBloques
-            ? "Tu rutina se mantiene dentro de tu línea base personal. No se ha detectado ninguna variación persistente."
-            : "Cuando tengas varias ventanas registradas verás aquí observaciones sobre tu rutina."}
+            ? "Tu rutina se mantiene dentro de tu línea base personal. Los bloques contiguos se consolidan automáticamente para facilitar la interpretación de tus patrones."
+            : "Cuando tengas varias ventanas registradas verás aquí observaciones analíticas sobre tu rutina."}
         </Text>
-        <Text className="text-xs text-ink-300 mt-3">
-          Los patrones no son diagnóstico médico. Pueden explicarse por horarios,
-          viajes u otros factores que los sensores no conocen.
+        <Text className="text-xs text-ink-300 mt-3 leading-4">
+          Los patrones no constituyen un diagnóstico médico. Reflejan correlaciones de sensores y modelos heurísticos y Random Forest.
         </Text>
       </Card>
     </Screen>

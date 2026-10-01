@@ -32,8 +32,8 @@ export default function TabsLayout() {
           elevation: 0,
           paddingTop: 9,
           paddingBottom: 9,
-          shadowColor: colors.brandCyan,
-          shadowOpacity: 0.22,
+          shadowColor: colors.brand,
+          shadowOpacity: 0.28,
           shadowRadius: 22,
           shadowOffset: { width: 0, height: 10 },
         },
@@ -43,7 +43,7 @@ export default function TabsLayout() {
             intensity={40}
             style={[
               StyleSheet.absoluteFill,
-              { borderRadius: 26, overflow: "hidden", backgroundColor: "rgba(10,14,32,0.55)" },
+              { borderRadius: 26, overflow: "hidden", backgroundColor: "rgba(8,19,16,0.65)" },
             ]}
           />
         ),

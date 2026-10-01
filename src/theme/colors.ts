@@ -8,45 +8,44 @@
  * necesitas un color desde JS, añádelo aquí y refiérelo como `colors.xxx`.
  */
 export const colors = {
-  brand: "#3f60f6",
-  brandCyan: "#39e7ff",
-  violet: "#a78bfa",
-  onPrimary: "#00363d",
-  textMuted: "#7d85a3",
-  fieldIcon: "#bac9cc",
-  inkPlaceholder: "#5b6382",
-  ringTrack: "rgba(255,255,255,0.14)",
+  brand: "#10b981",
+  brandCyan: "#2dd4bf",
+  violet: "#8b5cf6",
+  onPrimary: "#022c22",
+  textMuted: "#64748b",
+  fieldIcon: "#9ec3b7",
+  inkPlaceholder: "#475569",
+  ringTrack: "rgba(255,255,255,0.12)",
   switchOff: "rgba(255,255,255,0.18)",
   white: "#ffffff",
-  tabBar: { light: "#ffffff", dark: "#12141c" },
+  tabBar: { light: "#ffffff", dark: "#081310" },
   accent: {
     amber: "#f59e0b",
-    violet: "#a78bfa",
-    mint: "#4ade80",
-    mintDeep: "#34d399",
+    violet: "#8b5cf6",
+    mint: "#10b981",
+    mintDeep: "#059669",
     coral: "#fb7185",
   },
 } as const;
 
 /**
- * Tema "cósmico": la app entera vive sobre un cielo profundo. Estos tokens
- * definen el fondo vivo, el vidrio esmerilado y los brillos de acento.
+ * Tema Bio-Tech Esmeralda: lienzo obsidiana orgánico con luminiscencia bio-esmeralda y teal.
  */
 export const cosmic = {
-  /** Degradado de fondo (espacio profundo). */
-  bg: ["#05070F", "#0A0E20", "#141A3A"] as const,
-  /** Degradado de acento para superficies destacadas. */
-  aurora: ["#3F60F6", "#7C5CFF", "#39E7FF"] as const,
-  glow: "#39E7FF",
-  glowSoft: "rgba(57,231,255,0.35)",
-  violet: "#A78BFA",
+  /** Degradado de fondo (obsidiana orgánica profunda). */
+  bg: ["#030807", "#081310", "#0e201b"] as const,
+  /** Degradado de acento para superficies destacadas (esmeralda a bio-teal). */
+  aurora: ["#059669", "#10b981", "#2dd4bf"] as const,
+  glow: "#10b981",
+  glowSoft: "rgba(16, 185, 129, 0.35)",
+  violet: "#8b5cf6",
 } as const;
 
 /** Degradado oscuro compartido por las pantallas de autenticación. */
-export const authGradient = ["#070B1D", "#0e1224", "#161b2d"] as const;
+export const authGradient = ["#030807", "#081310", "#0c1a16"] as const;
 
 export const gradients = {
-  night: ["#161B4D", "#232E82", "#2B41EA"] as const,
-  dawn: ["#3F60F6", "#A78BFA", "#FB7185"] as const,
-  soft: ["#EEF4FF", "#DBE6FF"] as const,
+  night: ["#064e3b", "#047857", "#10b981"] as const,
+  dawn: ["#059669", "#2dd4bf", "#a3e635"] as const,
+  soft: ["#ecfdf5", "#d1fae5"] as const,
 };

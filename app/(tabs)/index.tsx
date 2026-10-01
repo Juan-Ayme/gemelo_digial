@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Alert, Text, View } from "react-native";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -5,7 +6,9 @@ import {
   ActivitySquare,
   Compass,
   Footprints,
+  HeartPulse,
   MoonStar,
+  Radio,
   Sparkles,
   Timer,
 } from "lucide-react-native";
@@ -15,10 +18,12 @@ import { Card } from "@components/ui/Card";
 import { Chip } from "@components/ui/Chip";
 import { Button } from "@components/ui/Button";
 import { AnimatedNumber } from "@components/ui/AnimatedNumber";
+import { AlertaSaludCard } from "@components/ui/AlertaSaludCard";
 import { ConfianzaRing } from "@components/gemelo/ConfianzaRing";
 import { useProfile } from "@hooks/useProfile";
 import { useConsents } from "@hooks/useConsents";
 import { useGemelo, useSimularCaptura, useCapturarSensores } from "@hooks/useGemelo";
+import { useAlertas } from "@hooks/useAlertas";
 import { ACTIVIDAD_LABELS } from "@services/types";
 import { colors } from "@theme/colors";
 
@@ -28,6 +33,11 @@ export default function Hoy() {
   const { data: consents } = useConsents();
   const simular = useSimularCaptura();
   const capturar = useCapturarSensores();
+  const { alertas } = useAlertas();
+
+  // IDs de alertas descartadas por el usuario en esta sesión
+  const [descartadas, setDescartadas] = useState<Set<string>>(new Set());
+  const alertasVisibles = alertas.filter((a) => !descartadas.has(a.id));
 
   const alias = profile?.alias ?? "Usuario";
   const hoy = format(new Date(), "EEEE d 'de' MMMM", { locale: es });
@@ -90,31 +100,84 @@ export default function Hoy() {
         <StatTile icon={<Compass size={18} color={colors.accent.mint} />} label="Zona" value={gemelo?.zonaActual ?? "—"} delay={260} />
       </View>
 
-      <Card className="mt-6" delay={320}>
-        <View className="flex-row items-center gap-3">
-          <ActivitySquare size={20} color={colors.brandCyan} />
-          <Text className="text-lg font-semibold text-white">Sensores del teléfono</Text>
+      {/* ── Alertas de salud ────────────────────────────────────────── */}
+      {alertasVisibles.length > 0 && (
+        <View className="mt-6">
+          <View className="flex-row items-center gap-2 mb-3">
+            <HeartPulse size={18} color={colors.accent.coral} />
+            <Text className="text-white font-semibold text-base">Alertas de salud</Text>
+            <View className="ml-auto bg-white/10 rounded-full px-2 py-0.5">
+              <Text className="text-xs text-ink-300 font-semibold">
+                {alertasVisibles.length}
+              </Text>
+            </View>
+          </View>
+          <View className="gap-3">
+            {alertasVisibles.map((alerta, i) => (
+              <AlertaSaludCard
+                key={alerta.id}
+                alerta={alerta}
+                delay={i * 60}
+                onDescartar={(id) =>
+                  setDescartadas((prev) => new Set([...prev, id]))
+                }
+              />
+            ))}
+          </View>
         </View>
-        <Text className="text-sm text-ink-300 mt-2 leading-5">
-          Lee tu actividad (movimiento), zona general y pasos según los permisos que hayas
-          activado en Perfil. Sueño y wearables requieren un development build (Health Connect).
+      )}
+
+      <Card glass className="mt-6" delay={300}>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2.5">
+            <View className="w-8 h-8 rounded-lg bg-brand-500/10 border border-brand-500/20 items-center justify-center">
+              <Radio size={16} color={colors.brandCyan} />
+            </View>
+            <View>
+              <Text className="text-base font-semibold text-white">Monitoreo de sensores</Text>
+              <View className="flex-row items-center gap-1.5 mt-0.5">
+                <View className="w-2 h-2 rounded-full bg-accent-mint" />
+                <Text className="text-xs text-accent-mint font-medium">Captura pasiva activa</Text>
+              </View>
+            </View>
+          </View>
+          <Chip label="En segundo plano" tone="mint" />
+        </View>
+
+        <Text className="text-xs text-ink-300 mt-3 leading-5">
+          Tus sensores registran movimiento, zona general y pasos periódicamente de forma automática. No necesitas mantener la pantalla encendida ni pulsar botones manuales.
         </Text>
-        <Button
-          className="mt-4"
-          size="sm"
-          label="Conectar y capturar sensores"
-          loading={capturar.isPending}
-          onPress={() => {
-            if (!algunConsent) {
-              Alert.alert(
-                "Sin permisos",
-                "Activa al menos un consentimiento en Perfil (actividad, pasos o zona) para leer tus sensores.",
-              );
-              return;
-            }
-            capturar.mutate(consents!);
-          }}
-        />
+
+        <View className="flex-row gap-2 mt-4">
+          <View className="flex-1">
+            <Button
+              size="sm"
+              variant="secondary"
+              label="Sincronizar ahora"
+              loading={capturar.isPending}
+              onPress={() => {
+                if (!algunConsent) {
+                  Alert.alert(
+                    "Sin permisos",
+                    "Activa al menos un consentimiento en Perfil (actividad, pasos o zona) para leer tus sensores.",
+                  );
+                  return;
+                }
+                capturar.mutate(consents!);
+              }}
+            />
+          </View>
+          <View className="flex-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              label={sinDatos ? "Dato de prueba" : "Añadir demo"}
+              loading={simular.isPending}
+              onPress={() => simular.mutate()}
+            />
+          </View>
+        </View>
+
         {capturar.isError ? (
           <Text className="text-xs text-error mt-2">
             {(capturar.error as Error)?.message === "sin-sensores"
@@ -122,14 +185,6 @@ export default function Hoy() {
               : "No se pudo guardar la captura. Revisa tu conexión o el esquema de Supabase."}
           </Text>
         ) : null}
-        <Button
-          className="mt-2"
-          size="sm"
-          variant="ghost"
-          label={sinDatos ? "Generar dato de prueba (demo)" : "Añadir dato demo"}
-          loading={simular.isPending}
-          onPress={() => simular.mutate()}
-        />
       </Card>
     </Screen>
   );
@@ -146,6 +201,7 @@ function StatTile({
   value: number | string;
   delay?: number;
 }) {
+  const isStringLong = typeof value === "string" && value.length > 6;
   return (
     <Card className="flex-1" delay={delay}>
       <View className="flex-row items-center gap-2">
@@ -159,7 +215,12 @@ function StatTile({
           className="text-2xl font-bold text-white mt-2"
         />
       ) : (
-        <Text className="text-2xl font-bold text-white mt-2">{value}</Text>
+        <Text
+          numberOfLines={1}
+          className={`${isStringLong ? "text-lg" : "text-2xl"} font-bold text-white mt-2`}
+        >
+          {value}
+        </Text>
       )}
     </Card>
   );

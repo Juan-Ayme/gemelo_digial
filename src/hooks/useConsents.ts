@@ -4,6 +4,7 @@ import { qk } from "@lib/queryClient";
 import { config } from "@constants/config";
 import { useAuthStore } from "@stores/authStore";
 import { DEFAULT_CONSENTS, fetchConsents, setConsent } from "@services/consent";
+import { actualizarContextoBg } from "@services/backgroundCapture";
 import type { ConsentMap } from "@services/types";
 import type { CategoriaConsentimiento } from "@schemas/consent";
 
@@ -42,10 +43,13 @@ export function useSetConsent() {
       if (!userId) return { prev: undefined };
       await qc.cancelQueries({ queryKey: qk.consents(userId) });
       const prev = qc.getQueryData<ConsentMap>(qk.consents(userId));
-      qc.setQueryData<ConsentMap>(qk.consents(userId), (old) => ({
-        ...(old ?? DEFAULT_CONSENTS),
+      const siguiente: ConsentMap = {
+        ...(prev ?? DEFAULT_CONSENTS),
         [v.categoria]: v.otorgado,
-      }));
+      };
+      qc.setQueryData<ConsentMap>(qk.consents(userId), siguiente);
+      // Sincroniza los consentimientos con AsyncStorage para la tarea BG
+      actualizarContextoBg(userId, siguiente).catch(() => {});
       return { prev };
     },
     onError: (_e, _v, ctx) => {

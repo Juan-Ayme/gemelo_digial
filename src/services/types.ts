@@ -71,9 +71,16 @@ export type GemeloSnapshot = {
 
 export type RutinaBloque = {
   hora: string;
+  horaInicio?: string;
+  horaFin?: string;
+  duracionMin?: number;
   actividad: string;
+  tipoActividad?: ActividadPredicha;
   detalle: string;
+  zona?: string | null;
+  confianza?: number | null;
   intensidad: number; // 0..1
+  cantidadVentanas?: number;
 };
 
 export const ACTIVIDAD_LABELS: Record<ActividadPredicha, string> = {

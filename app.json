@@ -14,7 +14,8 @@
       "infoPlist": {
         "NSMotionUsageDescription": "ando registra tu actividad física (pasos y movimiento) para construir tu rutina personal.",
         "NSLocationWhenInUseUsageDescription": "ando usa tu ubicación general para identificar zonas frecuentes (hogar, campus, tránsito). No conserva coordenadas exactas.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "ando puede identificar zonas frecuentes en segundo plano para completar tu rutina cuando la app no esté abierta."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "ando puede identificar zonas frecuentes en segundo plano para completar tu rutina cuando la app no esté abierta.",
+        "UIBackgroundModes": ["fetch", "processing"]
       }
     },
     "android": {
@@ -29,7 +30,10 @@
         "ACTIVITY_RECOGNITION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
         "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_DATA_SYNC",
         "POST_NOTIFICATIONS",
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_SLEEP",
@@ -55,6 +59,8 @@
       ],
       "expo-font",
       "expo-secure-store",
+      "expo-background-task",
+      "expo-background-fetch",
       [
         "expo-location",
         {

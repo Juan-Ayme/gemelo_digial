@@ -14,6 +14,9 @@ import {
   type RutinaBloque,
 } from "@services/types";
 
+// Fuente de la predicción vigente
+export type FuentePrediccion = "rf" | "heuristica";
+
 const ACTIVIDADES: ActividadPredicha[] = [
   "desplazamiento",
   "trabajo",
@@ -170,12 +173,15 @@ export function buildGemelo(events: EventoRow[]): GemeloSnapshot {
     { codigo: "wearable", nombre: "Wearable / ritmo", disponible: hayRitmo, calidad: hayRitmo ? 90 : 0 },
   ];
 
+  const lastWithZone = [...sorted].reverse().find((e) => Boolean(e.zona_general));
+  const lastWithAct = [...sorted].reverse().find((e) => Boolean(e.valor_texto));
+
   return {
     pasosHoy: Math.round(pasosHoy),
     minutosActivos: Math.round(minutosActivos),
     minutosDescanso: Math.round(minutosDescanso),
-    zonaActual: last?.zona_general ?? "—",
-    ultimaActividad: (last?.valor_texto as ActividadPredicha) ?? null,
+    zonaActual: lastWithZone?.zona_general ?? "—",
+    ultimaActividad: (lastWithAct?.valor_texto as ActividadPredicha) ?? (last?.valor_texto as ActividadPredicha) ?? null,
     prediccion: heuristicPrediccion(sorted),
     variacion: sorted.length < 3 ? "datos_insuficientes" : "estable",
     fuentes,
@@ -184,40 +190,172 @@ export function buildGemelo(events: EventoRow[]): GemeloSnapshot {
 }
 
 export function buildRutina(events: EventoRow[]): RutinaBloque[] {
-  const sorted = [...events].sort((a, b) => a.inicio_en.localeCompare(b.inicio_en));
+  // Solo procesar eventos que corresponden a ventanas de actividad
+  const activityEvents = events.filter((e) => {
+    if (e.tipo_evento === "ventana_actividad") return true;
+    if (e.valor_texto && e.tipo_evento !== "pasos" && e.tipo_evento !== "sueno" && e.tipo_evento !== "ritmo_cardiaco") {
+      return true;
+    }
+    return false;
+  });
+
+  const sorted = [...activityEvents].sort((a, b) => a.inicio_en.localeCompare(b.inicio_en));
+  if (!sorted.length) return [];
 
   const intensidadDe = (act: string): number => {
     switch (act) {
-      case "actividad_fisica":
-        return 0.9;
-      case "desplazamiento":
-        return 0.7;
-      case "trabajo":
-        return 0.55;
-      case "estudio":
-        return 0.5;
-      case "ocio":
-        return 0.4;
-      case "permanencia":
-        return 0.3;
-      case "descanso":
-        return 0.25;
-      default:
-        return 0.4;
+      case "actividad_fisica": return 0.9;
+      case "desplazamiento":   return 0.7;
+      case "trabajo":          return 0.55;
+      case "estudio":          return 0.5;
+      case "ocio":             return 0.4;
+      case "permanencia":      return 0.3;
+      case "descanso":         return 0.25;
+      default:                 return 0.4;
     }
   };
 
-  return sorted.map((e) => {
-    const d = new Date(e.inicio_en);
-    const hora = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-    const act = (e.valor_texto as ActividadPredicha) ?? "permanencia";
-    const zona = e.zona_general ? `Zona ${e.zona_general}` : "Sin zona";
-    const conf = typeof e.confianza === "number" ? ` · ${e.confianza}%` : "";
+  const formatHora = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  };
+
+  const formatZona = (z: string | null | undefined): string => {
+    if (!z) return "Sin zona";
+    return z.startsWith("Zona") ? z : `Zona ${z}`;
+  };
+
+  // Agrupamiento inteligente (clustering) de ventanas consecutivas con la misma actividad
+  type Cluster = {
+    actividad: ActividadPredicha;
+    inicio: string;
+    fin: string;
+    zona: string | null;
+    confianzas: number[];
+    count: number;
+  };
+
+  const clusters: Cluster[] = [];
+
+  for (const ev of sorted) {
+    const act = (ev.valor_texto as ActividadPredicha) ?? "permanencia";
+    const lastCluster = clusters[clusters.length - 1];
+
+    const evInicio = new Date(ev.inicio_en).getTime();
+    const lastFin = lastCluster ? new Date(lastCluster.fin).getTime() : 0;
+    const timeDiffMin = lastCluster ? (evInicio - lastFin) / 60000 : 999;
+
+    if (lastCluster && lastCluster.actividad === act && timeDiffMin <= 15) {
+      lastCluster.fin = ev.fin_en ?? ev.inicio_en;
+      if (ev.zona_general && !lastCluster.zona) {
+        lastCluster.zona = ev.zona_general;
+      }
+      if (typeof ev.confianza === "number") {
+        lastCluster.confianzas.push(ev.confianza);
+      }
+      lastCluster.count += 1;
+    } else {
+      clusters.push({
+        actividad: act,
+        inicio: ev.inicio_en,
+        fin: ev.fin_en ?? ev.inicio_en,
+        zona: ev.zona_general ?? null,
+        confianzas: typeof ev.confianza === "number" ? [ev.confianza] : [],
+        count: 1,
+      });
+    }
+  }
+
+  return clusters.map((c) => {
+    const horaInicio = formatHora(c.inicio);
+    const horaFin = formatHora(c.fin);
+    const duracionMin = Math.max(
+      1,
+      Math.round((new Date(c.fin).getTime() - new Date(c.inicio).getTime()) / 60000)
+    );
+
+    const horaLabel = horaInicio === horaFin ? horaInicio : `${horaInicio} – ${horaFin}`;
+    const avgConf = c.confianzas.length
+      ? Math.round(c.confianzas.reduce((a, b) => a + b, 0) / c.confianzas.length)
+      : null;
+
+    const zonaStr = formatZona(c.zona);
+    const confStr = avgConf !== null ? ` · ${avgConf}%` : "";
+    const durStr = duracionMin > 1 ? ` · ${duracionMin} min` : (c.count > 1 ? ` · ${c.count} ventanas` : "");
+
     return {
-      hora,
-      actividad: ACTIVIDAD_LABELS[act] ?? act,
-      detalle: `${zona}${conf}`,
-      intensidad: intensidadDe(act),
+      hora: horaLabel,
+      horaInicio,
+      horaFin: horaInicio !== horaFin ? horaFin : undefined,
+      duracionMin,
+      actividad: ACTIVIDAD_LABELS[c.actividad] ?? c.actividad,
+      tipoActividad: c.actividad,
+      detalle: `${zonaStr}${confStr}${durStr}`,
+      zona: c.zona,
+      confianza: avgConf,
+      intensidad: intensidadDe(c.actividad),
+      cantidadVentanas: c.count,
     };
   });
+}
+
+// --- Predicción del pipeline Random Forest -----------------------------------
+
+const ACTIVIDADES_VALIDAS = new Set<string>([
+  "desplazamiento", "trabajo", "estudio", "descanso",
+  "actividad_fisica", "ocio", "permanencia",
+]);
+
+/**
+ * Lee la predicción más reciente con estado "vigente" desde la tabla
+ * `predicciones` de Supabase (escrita por el pipeline PySpark).
+ *
+ * Devuelve `null` si:
+ *  - la app está en modo demo (sin Supabase),
+ *  - el pipeline aún no escribió ninguna predicción para el usuario,
+ *  - la fila contiene un valor de actividad desconocido.
+ *
+ * En cualquier caso de `null`, `useGemelo` cae automáticamente a la
+ * heurística de frecuencia local (`heuristicPrediccion`).
+ */
+export async function fetchPrediccionRF(
+  userId: string,
+): Promise<{ prediccion: Prediccion; fuente: "rf" } | null> {
+  if (!isRemote()) return null;
+
+  const { data, error } = await supabase!
+    .from("predicciones")
+    .select(
+      "actividad_predicha, probabilidad, horizonte_minutos, variables_relevantes, explicacion, created_at",
+    )
+    .eq(OWNER_COL, userId)
+    .eq("estado", "vigente")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle(); // null cuando 0 filas, nunca lanza PGRST116
+
+  if (error || !data) return null;
+
+  const actividad = data.actividad_predicha as string;
+  if (!ACTIVIDADES_VALIDAS.has(actividad)) return null;
+
+  let variablesRelevantes: string[] = [];
+  try {
+    const raw = data.variables_relevantes;
+    variablesRelevantes = Array.isArray(raw) ? raw : JSON.parse(raw ?? "[]");
+  } catch {
+    variablesRelevantes = [];
+  }
+
+  return {
+    fuente: "rf",
+    prediccion: {
+      actividad: actividad as ActividadPredicha,
+      probabilidad: Number(data.probabilidad ?? 0),
+      horizonteMin: Number(data.horizonte_minutos ?? 30),
+      variablesRelevantes,
+      explicacion: data.explicacion ?? "Predicción del modelo Random Forest.",
+      generadaEn: data.created_at ?? new Date().toISOString(),
+    },
+  };
 }

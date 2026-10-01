@@ -10,10 +10,11 @@ type Props = {
   onValueChange: (value: boolean) => void;
   label?: string;
   description?: string;
+  icon?: React.ReactNode;
   disabled?: boolean;
 };
 
-export function Switch({ value, onValueChange, label, description, disabled }: Props) {
+export function Switch({ value, onValueChange, label, description, icon, disabled }: Props) {
   return (
     <Pressable
       accessibilityRole="switch"
@@ -42,7 +43,10 @@ export function Switch({ value, onValueChange, label, description, disabled }: P
       {(label || description) && (
         <View className="flex-1">
           {label ? (
-            <Text className="text-base font-semibold text-white">{label}</Text>
+            <View className="flex-row items-center gap-2">
+              {icon}
+              <Text className="text-base font-semibold text-white">{label}</Text>
+            </View>
           ) : null}
           {description ? (
             <Text className="text-sm text-ink-300 mt-0.5">{description}</Text>

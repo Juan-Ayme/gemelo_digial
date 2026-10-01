@@ -33,4 +33,5 @@ export const qk = {
   profile: (userId: string) => ["profile", userId] as const,
   consents: (userId: string) => ["consents", userId] as const,
   events: (userId: string) => ["events", userId] as const,
+  prediccion: (userId: string) => ["prediccion-rf", userId] as const,
 };

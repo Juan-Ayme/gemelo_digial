@@ -18,7 +18,7 @@ type StarSpec = {
   color: string;
 };
 
-const PALETTE = ["#39E7FF", "#cfbdff"];
+const PALETTE = ["#10B981", "#2DD4BF", "#A3E635"];
 
 /**
  * Genera partículas pseudo-aleatorias pero deterministas para no re-crear el

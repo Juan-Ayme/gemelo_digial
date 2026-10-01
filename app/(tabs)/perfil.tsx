@@ -1,6 +1,20 @@
 import { Alert, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { Download, LogOut, Shield, Trash2 } from "lucide-react-native";
+import {
+  Activity,
+  Bell,
+  Download,
+  Footprints,
+  GraduationCap,
+  HeartPulse,
+  LogOut,
+  MapPin,
+  Moon,
+  Shield,
+  Trash2,
+  Watch,
+  Waves,
+} from "lucide-react-native";
 
 import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
@@ -13,6 +27,30 @@ import { useProfile } from "@hooks/useProfile";
 import { useAuthStore } from "@stores/authStore";
 import { config } from "@constants/config";
 import { colors } from "@theme/colors";
+
+function getConsentIcon(categoria: string) {
+  switch (categoria) {
+    case "actividad":
+      return Activity;
+    case "pasos":
+      return Footprints;
+    case "sueno":
+      return Moon;
+    case "zona_general":
+      return MapPin;
+    case "wearable":
+      return Watch;
+    case "fisiologia":
+      return HeartPulse;
+    case "ambiente":
+      return Waves;
+    case "notificaciones":
+      return Bell;
+    case "investigacion":
+    default:
+      return GraduationCap;
+  }
+}
 
 export default function Perfil() {
   const router = useRouter();
@@ -45,30 +83,41 @@ export default function Perfil() {
           className="mt-3"
           label={`Documento ${config.app.consentVersion}`}
           tone="violet"
+          leadingIcon={<Shield size={12} color={colors.violet} />}
         />
         <View className="mt-3">
-          {CATALOGO_CONSENTIMIENTOS.map((item) => (
-            <View
-              key={item.categoria}
-              className="border-t border-white/10 py-3"
-            >
-              <Switch
-                value={consents?.[item.categoria] ?? false}
-                onValueChange={(v) =>
-                  setConsent.mutate({
-                    categoria: item.categoria,
-                    otorgado: v,
-                    finalidad: item.finalidad,
-                  })
-                }
-                label={item.titulo}
-                description={item.finalidad}
-              />
-              <Text className="text-xs text-ink-400 mt-1 ml-[60px]">
-                {item.ejemplo}
-              </Text>
-            </View>
-          ))}
+          {CATALOGO_CONSENTIMIENTOS.map((item) => {
+            const Icon = getConsentIcon(item.categoria);
+            const isGranted = consents?.[item.categoria] ?? false;
+            return (
+              <View
+                key={item.categoria}
+                className="border-t border-white/10 py-3"
+              >
+                <Switch
+                  value={isGranted}
+                  onValueChange={(v) =>
+                    setConsent.mutate({
+                      categoria: item.categoria,
+                      otorgado: v,
+                      finalidad: item.finalidad,
+                    })
+                  }
+                  icon={
+                    <Icon
+                      size={15}
+                      color={isGranted ? colors.brandCyan : colors.textMuted}
+                    />
+                  }
+                  label={item.titulo}
+                  description={item.finalidad}
+                />
+                <Text className="text-xs text-ink-400 mt-1 ml-[60px]">
+                  {item.ejemplo}
+                </Text>
+              </View>
+            );
+          })}
         </View>
       </Card>
 

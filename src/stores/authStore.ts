@@ -78,19 +78,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (supabase) await supabase.auth.signOut();
     set({ session: null, user: null, demoMode: false });
     queryClient.clear();
+    // Cancela la tarea de segundo plano al cerrar sesión
+    import("@services/backgroundCapture")
+      .then(({ cancelarTareaSegundoPlano }) => cancelarTareaSegundoPlano())
+      .catch(() => {});
   },
 
   enterDemo(alias = "Usuario") {
+    const demoUser = {
+      id: "demo-user",
+      email: "demo@ando.local",
+      user_metadata: { alias },
+    } as unknown as User;
     set({
       demoMode: true,
       session: null,
-      user: {
-        id: "demo-user",
-        email: "demo@ando.local",
-        user_metadata: { alias },
-      } as unknown as User,
+      user: demoUser,
       initialized: true,
     });
+    // Persiste el userId de demo para que la tarea BG lo encuentre
+    import("@services/backgroundCapture")
+      .then(({ registrarTareaSegundoPlano }) => registrarTareaSegundoPlano())
+      .catch(() => {});
   },
 }));
 
