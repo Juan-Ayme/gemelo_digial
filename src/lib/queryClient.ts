@@ -34,4 +34,6 @@ export const qk = {
   consents: (userId: string) => ["consents", userId] as const,
   events: (userId: string) => ["events", userId] as const,
   prediccion: (userId: string) => ["prediccion-rf", userId] as const,
+  zonas: (userId: string) => ["zonas", userId] as const,
+  correcciones: (userId: string) => ["correcciones", userId] as const,
 };

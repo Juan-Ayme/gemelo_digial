@@ -13,9 +13,11 @@ import {
   type Prediccion,
   type RutinaBloque,
 } from "@services/types";
+import { extraerFeatures, predecirProximaActividadRF } from "@services/rfModel";
+import { calcularVariacionRutina } from "@services/lineaBase";
 
 // Fuente de la predicción vigente
-export type FuentePrediccion = "rf" | "heuristica";
+export type FuentePrediccion = "rf" | "rf_local" | "heuristica";
 
 const ACTIVIDADES: ActividadPredicha[] = [
   "desplazamiento",
@@ -174,18 +176,33 @@ export function buildGemelo(events: EventoRow[]): GemeloSnapshot {
   ];
 
   const lastWithZone = [...sorted].reverse().find((e) => Boolean(e.zona_general));
-  const lastWithAct = [...sorted].reverse().find((e) => Boolean(e.valor_texto));
+  const actEvents = sorted.filter((e) => Boolean(e.valor_texto));
+  const lastAct = actEvents[actEvents.length - 1]?.valor_texto ?? null;
+  const prevAct = actEvents[actEvents.length - 2]?.valor_texto ?? null;
+
+  // Inferencia Random Forest On-Device
+  const feat = extraerFeatures({
+    actividadActual: lastAct,
+    actividadAnterior: prevAct,
+    pasosVentana: Math.round(pasosHoy),
+    zonaGeneral: lastWithZone?.zona_general,
+  });
+
+  const predRFLocal = sorted.length >= 1 ? predecirProximaActividadRF(feat) : null;
+  const analisis = calcularVariacionRutina(sorted);
 
   return {
     pasosHoy: Math.round(pasosHoy),
     minutosActivos: Math.round(minutosActivos),
     minutosDescanso: Math.round(minutosDescanso),
     zonaActual: lastWithZone?.zona_general ?? "—",
-    ultimaActividad: (lastWithAct?.valor_texto as ActividadPredicha) ?? (last?.valor_texto as ActividadPredicha) ?? null,
-    prediccion: heuristicPrediccion(sorted),
-    variacion: sorted.length < 3 ? "datos_insuficientes" : "estable",
+    ultimaActividad: (lastAct as ActividadPredicha) ?? (last?.valor_texto as ActividadPredicha) ?? null,
+    prediccion: predRFLocal ?? heuristicPrediccion(sorted),
+    variacion: analisis.nivel,
     fuentes,
     totalEventos: sorted.length,
+    fuentePrediccion: "rf_local",
+    analisisVariacion: analisis,
   };
 }
 

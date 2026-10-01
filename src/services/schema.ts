@@ -9,6 +9,11 @@ export const TABLES = {
   perfiles: "perfiles",
   consentimientos: "consentimientos",
   eventosCrudos: "eventos_crudos",
+  predicciones: "predicciones",
+  correccionesActividad: "correcciones_actividad",
+  lineasBase: "lineas_base",
+  variacionesRutina: "variaciones_rutina",
+  versionesModelo: "versiones_modelo",
 } as const;
 
 /** Columna FK al titular (auth.users.id) presente en todas las tablas con RLS. */

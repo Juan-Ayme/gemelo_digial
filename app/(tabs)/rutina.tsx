@@ -19,6 +19,8 @@ import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
 import { Chip } from "@components/ui/Chip";
 import { useRutina, useGemelo } from "@hooks/useGemelo";
+import { useAliasZonas } from "@hooks/useZonas";
+import { nombreCortoZona } from "@services/zonas";
 import type { ActividadPredicha } from "@services/types";
 import { colors } from "@theme/colors";
 
@@ -94,8 +96,9 @@ function getActividadConfig(act?: ActividadPredicha | string) {
 export default function Rutina() {
   const { data: bloques = [] } = useRutina();
   const { data: gemelo } = useGemelo();
+  const { data: aliasZonas } = useAliasZonas();
   const hayBloques = bloques.length > 0;
-  const esRF = gemelo?.fuentePrediccion === "rf";
+  const esRF = gemelo?.fuentePrediccion === "rf" || gemelo?.fuentePrediccion === "rf_local";
 
   // Total de ventanas individuales procesadas dentro de los bloques
   const totalVentanas = bloques.reduce((acc, b) => acc + (b.cantidadVentanas ?? 1), 0);
@@ -207,7 +210,7 @@ export default function Rutina() {
                       <View className="flex-row items-center gap-1">
                         <MapPin size={11} color={colors.accent.mint} />
                         <Text className="text-xs text-ink-300">
-                          {bloque.zona ? bloque.zona : "Sin zona detectada"}
+                          {bloque.zona ? nombreCortoZona(bloque.zona, aliasZonas) : "Sin zona detectada"}
                         </Text>
                       </View>
 

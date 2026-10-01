@@ -19,11 +19,14 @@ import { Chip } from "@components/ui/Chip";
 import { Button } from "@components/ui/Button";
 import { AnimatedNumber } from "@components/ui/AnimatedNumber";
 import { AlertaSaludCard } from "@components/ui/AlertaSaludCard";
+import { ValidacionActividadCard } from "@components/ui/ValidacionActividadCard";
 import { ConfianzaRing } from "@components/gemelo/ConfianzaRing";
 import { useProfile } from "@hooks/useProfile";
 import { useConsents } from "@hooks/useConsents";
 import { useGemelo, useSimularCaptura, useCapturarSensores } from "@hooks/useGemelo";
 import { useAlertas } from "@hooks/useAlertas";
+import { useAliasZonas } from "@hooks/useZonas";
+import { nombreCortoZona } from "@services/zonas";
 import { ACTIVIDAD_LABELS } from "@services/types";
 import { colors } from "@theme/colors";
 
@@ -31,6 +34,7 @@ export default function Hoy() {
   const { data: profile } = useProfile();
   const { data: gemelo } = useGemelo();
   const { data: consents } = useConsents();
+  const { data: aliasZonas } = useAliasZonas();
   const simular = useSimularCaptura();
   const capturar = useCapturarSensores();
   const { alertas } = useAlertas();
@@ -91,13 +95,20 @@ export default function Hoy() {
         </Card>
       )}
 
+      {/* ── Calibración / Feedback de actividad (Ground Truth) ── */}
+      <ValidacionActividadCard
+        prediccion={prediccion}
+        zonaActual={gemelo?.zonaActual}
+        delay={120}
+      />
+
       <View className="mt-4 flex-row gap-3">
         <StatTile icon={<Footprints size={18} color={colors.brandCyan} />} label="Pasos" value={gemelo?.pasosHoy ?? 0} delay={140} />
         <StatTile icon={<Timer size={18} color={colors.accent.amber} />} label="Min. activos" value={gemelo?.minutosActivos ?? 0} delay={180} />
       </View>
       <View className="mt-3 flex-row gap-3">
         <StatTile icon={<MoonStar size={18} color={colors.accent.violet} />} label="Descanso" value={`${Math.round((gemelo?.minutosDescanso ?? 0) / 60)} h`} delay={220} />
-        <StatTile icon={<Compass size={18} color={colors.accent.mint} />} label="Zona" value={gemelo?.zonaActual ?? "—"} delay={260} />
+        <StatTile icon={<Compass size={18} color={colors.accent.mint} />} label="Zona" value={nombreCortoZona(gemelo?.zonaActual, aliasZonas)} delay={260} />
       </View>
 
       {/* ── Alertas de salud ────────────────────────────────────────── */}

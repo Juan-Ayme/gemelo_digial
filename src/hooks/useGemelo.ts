@@ -71,7 +71,7 @@ export function useGemelo(): {
         ...snapshot,
         // RF tiene prioridad; heurística es el fallback silencioso
         prediccion: rfResult?.prediccion ?? snapshot.prediccion,
-        fuentePrediccion: (rfResult?.fuente ?? "heuristica") as FuentePrediccion,
+        fuentePrediccion: (rfResult?.fuente ?? snapshot.fuentePrediccion ?? "rf_local") as FuentePrediccion,
       }
     : undefined;
 

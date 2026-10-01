@@ -55,6 +55,7 @@ export type Prediccion = {
   variablesRelevantes: string[];
   explicacion: string;
   generadaEn: string;
+  importancias?: Record<string, number>;
 };
 
 export type GemeloSnapshot = {
@@ -67,6 +68,13 @@ export type GemeloSnapshot = {
   variacion: NivelVariacion;
   fuentes: FuenteEstado[];
   totalEventos: number;
+  fuentePrediccion?: "rf" | "rf_local" | "heuristica";
+  analisisVariacion?: {
+    nivel: NivelVariacion;
+    desviacionPct: number;
+    explicacion: string;
+    indiceConsistencia: number;
+  };
 };
 
 export type RutinaBloque = {

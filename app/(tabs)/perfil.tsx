@@ -21,9 +21,11 @@ import { Card } from "@components/ui/Card";
 import { Button } from "@components/ui/Button";
 import { Switch } from "@components/ui/Switch";
 import { Chip } from "@components/ui/Chip";
+import { GestorZonasCard } from "@components/ui/GestorZonasCard";
 import { CATALOGO_CONSENTIMIENTOS } from "@schemas/consent";
 import { useConsents, useSetConsent } from "@hooks/useConsents";
 import { useProfile } from "@hooks/useProfile";
+import { useGemelo } from "@hooks/useGemelo";
 import { useAuthStore } from "@stores/authStore";
 import { config } from "@constants/config";
 import { colors } from "@theme/colors";
@@ -58,6 +60,7 @@ export default function Perfil() {
   const setConsent = useSetConsent();
   const signOut = useAuthStore((s) => s.signOut);
   const { data: profile } = useProfile();
+  const { data: gemelo } = useGemelo();
   const alias = profile?.alias ?? "Usuario";
 
   return (
@@ -120,6 +123,12 @@ export default function Perfil() {
           })}
         </View>
       </Card>
+
+      {/* ── Gestor de Zonas Contextuales ── */}
+      <GestorZonasCard
+        zonasDetectadas={[gemelo?.zonaActual].filter(Boolean) as string[]}
+        delay={100}
+      />
 
       <Card className="mt-4">
         <Text className="text-lg font-semibold text-white">

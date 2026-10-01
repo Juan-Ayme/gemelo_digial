@@ -23,6 +23,8 @@ import { Card } from "@components/ui/Card";
 import { Chip } from "@components/ui/Chip";
 import { GemeloAvatar } from "@components/gemelo/Avatar";
 import { useGemelo } from "@hooks/useGemelo";
+import { useAliasZonas } from "@hooks/useZonas";
+import { nombreCortoZona } from "@services/zonas";
 import {
   ACTIVIDAD_LABELS,
   type ActividadPredicha,
@@ -96,13 +98,20 @@ function getFuenteIcon(codigo: string) {
 
 export default function GemeloTab() {
   const { data: gemelo } = useGemelo();
+  const { data: aliasZonas } = useAliasZonas();
   const [posePreview, setPosePreview] = useState<ActividadPredicha | null>(null);
 
   const fuentes = gemelo?.fuentes ?? [];
   const prediccion = gemelo?.prediccion ?? null;
   const variacion: NivelVariacion = gemelo?.variacion ?? "datos_insuficientes";
   const confianza = Math.round((prediccion?.probabilidad ?? 0) * 100);
-  const esRF = gemelo?.fuentePrediccion === "rf";
+  const esRF = gemelo?.fuentePrediccion === "rf" || gemelo?.fuentePrediccion === "rf_local";
+  const modeloNombre =
+    gemelo?.fuentePrediccion === "rf"
+      ? "Modelo Random Forest (PySpark)"
+      : gemelo?.fuentePrediccion === "rf_local"
+        ? "Modelo Random Forest (On-Device v1.0)"
+        : "Modelo Heurístico Adaptativo";
 
   // Actividad mostrada en el avatar: o la que el usuario está probando, o la real
   const actividadActiva = posePreview ?? gemelo?.ultimaActividad ?? "permanencia";
@@ -193,6 +202,11 @@ export default function GemeloTab() {
           <Text className="text-white text-2xl font-bold">
             {VARIACION_LABEL[variacion]}
           </Text>
+          {gemelo?.analisisVariacion ? (
+            <Text className="text-emerald-300 text-xs mt-1 text-center font-medium px-4">
+              {gemelo.analisisVariacion.explicacion}
+            </Text>
+          ) : null}
           <Text className="text-ink-300 text-sm mt-1 text-center">
             {prediccion
               ? `Última predicción calculada con ${confianza}% de confianza`
@@ -208,7 +222,7 @@ export default function GemeloTab() {
                 className="text-xs font-semibold"
                 style={{ color: esRF ? colors.accent.mint : colors.brandCyan }}
               >
-                {esRF ? "Modelo Random Forest v1.0" : "Modelo Heurístico Adaptativo"}
+                {modeloNombre}
               </Text>
             </View>
           ) : null}
@@ -241,6 +255,7 @@ export default function GemeloTab() {
               peso: 25,
               icon: Sparkles,
             };
+            const peso = prediccion?.importancias?.[vKey] ?? v.peso;
             const Icon = v.icon;
 
             return (
@@ -253,7 +268,7 @@ export default function GemeloTab() {
                     </Text>
                   </View>
                   <Text className="text-xs font-bold text-brand-300">
-                    {v.peso}% peso
+                    {peso}% peso
                   </Text>
                 </View>
                 <Text className="text-[11px] text-ink-300 mt-1">
@@ -263,7 +278,7 @@ export default function GemeloTab() {
                 <View className="h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
                   <View
                     className="h-full bg-brand-400 rounded-full"
-                    style={{ width: `${v.peso * 2.2}%` }}
+                    style={{ width: `${Math.min(100, peso * 2.2)}%` }}
                   />
                 </View>
               </View>
@@ -272,9 +287,11 @@ export default function GemeloTab() {
         </View>
 
         <Text className="text-ink-400 text-xs mt-3 leading-4">
-          {esRF
-            ? "Predicción calculada por Random Forest con pesos derivados de los árboles de decisión en Supabase."
-            : "Actualmente se ponderan por frecuencia circadiana temporal. El modelo Random Forest se activará en el pipeline PySpark."}
+          {gemelo?.fuentePrediccion === "rf"
+            ? "Predicción calculada por Random Forest central en Supabase."
+            : gemelo?.fuentePrediccion === "rf_local"
+              ? "Predicción calculada en tiempo real mediante el ensamble Random Forest On-Device."
+              : "Actualmente se ponderan por frecuencia circadiana temporal."}
         </Text>
       </Card>
 
@@ -311,7 +328,9 @@ export default function GemeloTab() {
                 <View className="flex-1">
                   <View className="flex-row items-center justify-between">
                     <Text className="text-white font-medium text-sm">
-                      {f.nombre}
+                      {f.codigo === "zone" && gemelo?.zonaActual && gemelo.zonaActual !== "—"
+                        ? `Zona (${nombreCortoZona(gemelo.zonaActual, aliasZonas)})`
+                        : f.nombre}
                     </Text>
                     <Text
                       className="text-xs font-semibold"
