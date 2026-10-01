@@ -132,7 +132,7 @@ function heuristicPrediccion(events: EventoRow[]): Prediccion | null {
     probabilidad,
     horizonteMin: 30,
     variablesRelevantes: ["hora_del_dia", "actividad_actual", "zona_general", "pasos_ventana"],
-    explicacion: `Según tus ventanas de hoy, "${ACTIVIDAD_LABELS[top] ?? top}" es tu actividad más frecuente. Heurística base; el modelo Random Forest llegará con más datos.`,
+    explicacion: `Actividad frecuente detectada hoy. Tu gemelo calibra continuamente tus patrones habituales.`,
     generadaEn: new Date().toISOString(),
   };
 }

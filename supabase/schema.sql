@@ -37,7 +37,18 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- 2) RLS + permisos + política por titular ------------------------------------
+-- 2) Tabla de calibración y feedback (si aún no existe en ando_schema) ---------
+create table if not exists public.correcciones_actividad (
+  id uuid primary key default gen_random_uuid(),
+  usuario_id uuid not null references auth.users (id) on delete cascade,
+  actividad_original text not null,
+  actividad_corregida text not null,
+  confirmada boolean not null default true,
+  motivo text,
+  created_at timestamptz not null default now()
+);
+
+-- 3) RLS + permisos + política por titular ------------------------------------
 -- Todas estas tablas tienen `usuario_id`, así que aplican la misma regla.
 do $$
 declare t text;

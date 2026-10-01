@@ -55,25 +55,25 @@ const VARIABLE_INFO: Record<
 > = {
   hora_del_dia: {
     label: "Momento del día",
-    desc: "Patrón circadiano y hábitos horarios",
+    desc: "Tu rutina y horarios habituales",
     peso: 35,
     icon: Clock,
   },
   actividad_actual: {
     label: "Actividad previa",
-    desc: "Inercia conductual y transiciones",
+    desc: "La continuidad de lo que venías haciendo",
     peso: 30,
     icon: Activity,
   },
   zona_general: {
-    label: "Zona contextual",
-    desc: "Frecuencia en celda espacial",
+    label: "Entorno habitual",
+    desc: "Tu espacio frecuente con total privacidad",
     peso: 20,
     icon: Compass,
   },
   pasos_ventana: {
-    label: "Ritmo de pasos",
-    desc: "Cadencia e intensidad motriz",
+    label: "Movimiento y pasos",
+    desc: "Nivel de desplazamiento y actividad reciente",
     peso: 15,
     icon: Footprints,
   },
@@ -108,10 +108,8 @@ export default function GemeloTab() {
   const esRF = gemelo?.fuentePrediccion === "rf" || gemelo?.fuentePrediccion === "rf_local";
   const modeloNombre =
     gemelo?.fuentePrediccion === "rf"
-      ? "Modelo Random Forest (PySpark)"
-      : gemelo?.fuentePrediccion === "rf_local"
-        ? "Modelo Random Forest (On-Device v1.0)"
-        : "Modelo Heurístico Adaptativo";
+      ? "Sincronizado en la nube"
+      : "Gemelo activo · Privado";
 
   // Actividad mostrada en el avatar: o la que el usuario está probando, o la real
   const actividadActiva = posePreview ?? gemelo?.ultimaActividad ?? "permanencia";
@@ -121,7 +119,7 @@ export default function GemeloTab() {
       {/* ── Encabezado & Avatar Poligonal Articulado ── */}
       <View className="items-center pt-2">
         <Chip
-          label="Gemelo Digital Articulado"
+          label="Tu Gemelo Digital"
           tone="brand"
           leadingIcon={<Sparkles size={12} color={colors.brandCyan} />}
         />
@@ -209,8 +207,8 @@ export default function GemeloTab() {
           ) : null}
           <Text className="text-ink-300 text-sm mt-1 text-center">
             {prediccion
-              ? `Última predicción calculada con ${confianza}% de confianza`
-              : "Registra ventanas para generar tu primera predicción"}
+              ? `Estimación con ${confianza}% de coincidencia con tus hábitos`
+              : "Registra momentos para sincronizar tu gemelo"}
           </Text>
           {prediccion ? (
             <View className="flex-row items-center gap-1.5 mt-2 bg-white/10 border border-white/10 rounded-full px-3 py-1">
@@ -229,17 +227,17 @@ export default function GemeloTab() {
         </MotiView>
       </View>
 
-      {/* ── Variables Influyentes (Explainable AI / XAI) ── */}
+      {/* ── Factores clave en tus hábitos ── */}
       <Card glass className="mt-6">
         <View className="flex-row items-center justify-between">
           <Text className="text-white/80 text-xs uppercase tracking-widest font-semibold">
-            Variables influyentes en la predicción
+            ¿En qué se fija tu gemelo?
           </Text>
-          <Chip label="XAI" tone="violet" />
+          <Chip label="Hábitos" tone="brand" />
         </View>
 
         <Text className="text-xs text-ink-300 mt-1 mb-3">
-          Factores que mayor peso aportaron al resultado del modelo predictivo:
+          Señales cotidianas que determinan tu próxima actividad:
         </Text>
 
         <View className="gap-3">
@@ -268,13 +266,13 @@ export default function GemeloTab() {
                     </Text>
                   </View>
                   <Text className="text-xs font-bold text-brand-300">
-                    {peso}% peso
+                    {peso}% de peso
                   </Text>
                 </View>
                 <Text className="text-[11px] text-ink-300 mt-1">
                   {v.desc}
                 </Text>
-                {/* Barra de importancia relativa */}
+                {/* Barra de relevancia */}
                 <View className="h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
                   <View
                     className="h-full bg-brand-400 rounded-full"
@@ -287,11 +285,7 @@ export default function GemeloTab() {
         </View>
 
         <Text className="text-ink-400 text-xs mt-3 leading-4">
-          {gemelo?.fuentePrediccion === "rf"
-            ? "Predicción calculada por Random Forest central en Supabase."
-            : gemelo?.fuentePrediccion === "rf_local"
-              ? "Predicción calculada en tiempo real mediante el ensamble Random Forest On-Device."
-              : "Actualmente se ponderan por frecuencia circadiana temporal."}
+          Tu gemelo procesa estos datos de forma privada directamente en tu teléfono.
         </Text>
       </Card>
 

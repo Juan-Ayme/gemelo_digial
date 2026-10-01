@@ -77,7 +77,7 @@ export default function Hoy() {
                 {ACTIVIDAD_LABELS[prediccion.actividad] ?? prediccion.actividad}
               </Text>
               <Text className="text-sm text-ink-300 mt-1">
-                Horizonte {prediccion.horizonteMin} min · {prediccion.variablesRelevantes.length} variables
+                Próximos {prediccion.horizonteMin} min · En tiempo real
               </Text>
             </View>
           </View>

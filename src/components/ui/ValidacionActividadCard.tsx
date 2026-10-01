@@ -44,6 +44,7 @@ export function ValidacionActividadCard({ prediccion, zonaActual, delay = 100 }:
   const [mostrandoSelector, setMostrandoSelector] = useState(false);
   const [descartado, setDescartado] = useState(false);
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+  const [procesando, setProcesando] = useState(false);
 
   if (!prediccion || descartado) return null;
 
@@ -59,6 +60,10 @@ export function ValidacionActividadCard({ prediccion, zonaActual, delay = 100 }:
     ACTIVIDAD_LABELS[prediccion.actividad] ?? prediccion.actividad;
 
   const handleConfirmar = () => {
+    if (procesando) return;
+    setProcesando(true);
+    setMensajeExito("¡Confirmado! Tu gemelo aprende de tu momento actual.");
+
     registrar.mutate(
       {
         actividadOriginal: prediccion.actividad,
@@ -67,15 +72,20 @@ export function ValidacionActividadCard({ prediccion, zonaActual, delay = 100 }:
         zonaActual,
       },
       {
-        onSuccess: () => {
-          setMensajeExito("¡Acierto registrado! Tu gemelo aprende de tus confirmaciones.");
-          setTimeout(() => setDescartado(true), 3200);
+        onSettled: () => {
+          setTimeout(() => setDescartado(true), 2000);
         },
       },
     );
   };
 
   const handleCorregir = (nuevaActividad: ActividadPredicha) => {
+    if (procesando) return;
+    setProcesando(true);
+    setMensajeExito(
+      `Actualizado a "${ACTIVIDAD_LABELS[nuevaActividad]}". Tu gemelo afinará su próxima estimación.`,
+    );
+
     registrar.mutate(
       {
         actividadOriginal: prediccion.actividad,
@@ -84,11 +94,8 @@ export function ValidacionActividadCard({ prediccion, zonaActual, delay = 100 }:
         zonaActual,
       },
       {
-        onSuccess: () => {
-          setMensajeExito(
-            `Calibrado a "${ACTIVIDAD_LABELS[nuevaActividad]}". El modelo ajustará su próxima inferencia.`,
-          );
-          setTimeout(() => setDescartado(true), 3200);
+        onSettled: () => {
+          setTimeout(() => setDescartado(true), 2000);
         },
       },
     );
@@ -119,7 +126,7 @@ export function ValidacionActividadCard({ prediccion, zonaActual, delay = 100 }:
                 <Sparkles size={13} color={colors.brandCyan} />
               </View>
               <Text className="text-xs uppercase tracking-widest font-semibold text-brand-300">
-                Calibración del gemelo
+                Sintonía del gemelo
               </Text>
             </View>
             <Pressable
@@ -133,12 +140,11 @@ export function ValidacionActividadCard({ prediccion, zonaActual, delay = 100 }:
 
           {/* Pregunta principal */}
           <Text className="text-white font-bold text-base mt-2">
-            ¿Tu gemelo acertó?
+            ¿Es correcto tu estado?
           </Text>
           <Text className="text-xs text-ink-300 mt-0.5 leading-4">
-            El modelo anticipa que estás en{" "}
-            <Text className="text-brand-200 font-semibold">{actividadNombre}</Text>{" "}
-            ({Math.round(prediccion.probabilidad * 100)}% de confianza).
+            Tu gemelo estima que estás en{" "}
+            <Text className="text-brand-200 font-semibold">{actividadNombre}</Text>. ¿Coincide con tu actividad actual?
           </Text>
 
           {/* Botones de acción rápida */}
@@ -146,7 +152,7 @@ export function ValidacionActividadCard({ prediccion, zonaActual, delay = 100 }:
             <View className="flex-row gap-2 mt-3.5">
               <Pressable
                 onPress={handleConfirmar}
-                disabled={registrar.isPending}
+                disabled={procesando}
                 className="flex-1 bg-brand-500/20 border border-brand-400/40 rounded-xl py-2 px-3 flex-row items-center justify-center gap-1.5 active:bg-brand-500/30"
               >
                 <Check size={14} color={colors.brandCyan} />
@@ -157,7 +163,7 @@ export function ValidacionActividadCard({ prediccion, zonaActual, delay = 100 }:
 
               <Pressable
                 onPress={() => setMostrandoSelector(true)}
-                disabled={registrar.isPending}
+                disabled={procesando}
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl py-2 px-3 flex-row items-center justify-center gap-1.5 active:bg-white/10"
               >
                 <Text className="text-xs font-medium text-ink-200">

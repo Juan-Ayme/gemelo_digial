@@ -241,10 +241,33 @@ export function predecirProximaActividadRF(
     zona_general: Math.round((pesoFeatures.zona_general / sumPesos) * 100),
   };
 
-  const actividadNombre = ACTIVIDAD_LABELS[ganador] ?? ganador;
-  const explicacion = `El ensamble Random Forest (10 árboles) anticipa "${actividadNombre}" con ${Math.round(
-    probabilidad * 100,
-  )}% de acuerdo basado en tu patrón horario (${importancias.hora_del_dia}%), actividad actual (${importancias.actividad_actual}%) y ritmo de pasos (${importancias.pasos_ventana}%).`;
+  function generarExplicacionNatural(
+    act: ActividadPredicha,
+  ): string {
+    const hora = new Date().getHours();
+    const momento = hora < 12 ? "la mañana" : hora < 19 ? "la tarde" : "la noche";
+
+    switch (act) {
+      case "descanso":
+        return `Por el horario de ${momento} y tu bajo nivel de movimiento, coincide con tu momento habitual de descanso.`;
+      case "permanencia":
+        return `Detectamos poco desplazamiento, típico de cuando estás en tu lugar habitual o en concentración.`;
+      case "desplazamiento":
+        return `Detectamos ritmo de pasos en curso, coincidente con tus traslados habituales en este horario.`;
+      case "trabajo":
+        return `Por la hora del día y la continuidad de tus actividades, coincide con tu horario laboral.`;
+      case "estudio":
+        return `Tu entorno y patrón horario son acordes a tus sesiones habituales de estudio.`;
+      case "actividad_fisica":
+        return `El ritmo de pasos e intensidad registrados coinciden con tu tiempo de actividad física.`;
+      case "ocio":
+        return `Es un momento propicio para desconectar y tomarte una pausa agradable.`;
+      default:
+        return `Coincide con tu patrón habitual para este momento del día.`;
+    }
+  }
+
+  const explicacion = generarExplicacionNatural(ganador);
 
   return {
     actividad: ganador,

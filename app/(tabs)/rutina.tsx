@@ -108,7 +108,7 @@ export default function Rutina() {
       <View className="gap-1">
         <Text className="text-3xl font-bold text-white">Rutina de hoy</Text>
         <Text className="text-base text-ink-300">
-          Línea base inteligente construida a partir de tus ventanas de actividad.
+          Tu cronología diaria organizada según tu ritmo y momentos clave.
         </Text>
       </View>
 
@@ -123,12 +123,12 @@ export default function Rutina() {
           }
         />
         <Chip
-          label={`${bloques.length} ${bloques.length === 1 ? "bloque" : "bloques"} (${totalVentanas} vent.)`}
+          label={`${bloques.length} ${bloques.length === 1 ? "momento" : "momentos"}`}
           tone="brand"
           leadingIcon={<Layers size={12} color={colors.brandCyan} />}
         />
         <Chip
-          label={esRF ? "v1.0 Random Forest" : "v1.0 Heurística"}
+          label="Ritmo habitual"
           tone="violet"
           leadingIcon={<Sparkles size={12} color={colors.violet} />}
         />
