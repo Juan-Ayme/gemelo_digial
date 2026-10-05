@@ -7,6 +7,7 @@ import {
   Briefcase,
   Calendar,
   Coffee,
+  Crown,
   Dumbbell,
   Flame,
   Footprints,
@@ -19,7 +20,9 @@ import {
 import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
 import { Chip } from "@components/ui/Chip";
+import { ProGate, ProBadge } from "@components/ui/ProGate";
 import { useHistorial, useSemanaResumen } from "@hooks/useHistorial";
+import { useEsPro } from "@hooks/useSuscripcion";
 import type { DiaResumen } from "@services/historial";
 import type { ActividadPredicha } from "@services/types";
 import { colors } from "@theme/colors";
@@ -108,44 +111,15 @@ function BarraDia({ dia, maxPasos, isSelected, onPress }: {
 export default function Historial() {
   const [periodo, setPeriodo] = useState<7 | 14 | 30>(7);
   const [diaSeleccionado, setDiaSeleccionado] = useState<DiaResumen | null>(null);
+  const esPro = useEsPro();
   const { data: historial = [], isLoading } = useHistorial(periodo);
   const { data: semana } = useSemanaResumen(periodo);
 
   const maxPasos = Math.max(...historial.map((d) => d.pasosHoy), 1);
   const diaActivo = diaSeleccionado ?? historial[historial.length - 1] ?? null;
 
-  return (
-    <Screen scroll>
-      <View className="gap-1">
-        <Text className="text-3xl font-bold text-white">Historial</Text>
-        <Text className="text-base text-ink-300">
-          Tu evolución en el tiempo, día a día.
-        </Text>
-      </View>
-
-      {/* Selector de periodo */}
-      <View className="flex-row gap-2 mt-4">
-        {([7, 14, 30] as const).map((p) => (
-          <Pressable
-            key={p}
-            onPress={() => setPeriodo(p)}
-            className={`flex-1 py-2 rounded-xl items-center border ${
-              periodo === p
-                ? "bg-brand-500/20 border-brand-400"
-                : "bg-white/5 border-white/10"
-            }`}
-          >
-            <Text
-              className={`text-xs font-semibold ${
-                periodo === p ? "text-brand-300" : "text-ink-300"
-              }`}
-            >
-              {p} días
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
+  const contenido = (
+    <>
       {/* ── Gráfico de barras ── */}
       <Card glass className="mt-5">
         <View className="flex-row items-center justify-between mb-3">
@@ -287,6 +261,59 @@ export default function Historial() {
             ))}
           </View>
         </Card>
+      )}
+    </>
+  );
+
+  return (
+    <Screen scroll>
+      <View className="gap-1">
+        <Text className="text-3xl font-bold text-white">Historial</Text>
+        <Text className="text-base text-ink-300">
+          Tu evolución en el tiempo, día a día.
+        </Text>
+      </View>
+
+      {/* Selector de periodo */}
+      <View className="flex-row gap-2 mt-4">
+        {([7, 14, 30] as const).map((p) => (
+          <Pressable
+            key={p}
+            onPress={() => setPeriodo(p)}
+            className={`flex-1 py-2 rounded-xl items-center border ${
+              periodo === p
+                ? "bg-brand-500/20 border-brand-400"
+                : "bg-white/5 border-white/10"
+            }`}
+          >
+            <View className="flex-row items-center justify-center gap-1">
+              <Text
+                className={`text-xs font-semibold ${
+                  periodo === p ? "text-brand-300" : "text-ink-300"
+                }`}
+              >
+                {p} días
+              </Text>
+              {p > 7 && !esPro && <Crown size={10} color="#fbbf24" />}
+            </View>
+          </Pressable>
+        ))}
+      </View>
+
+      {periodo > 7 && !esPro ? (
+        <ProGate
+          titulo={`Historial extendido de ${periodo} días`}
+          descripcion="Accede a la evolución completa de tu Gemelo Digital por semanas o meses, detecta estacionalidades y compara tendencias de actividad."
+          beneficios={[
+            `Visualización completa de ${periodo} días consecutivos`,
+            "Detección de patrones y estacionalidades en tu rutina",
+            "Exportación histórica extendida para investigación",
+          ]}
+        >
+          {contenido}
+        </ProGate>
+      ) : (
+        contenido
       )}
     </Screen>
   );

@@ -79,12 +79,13 @@ export default function TabsLayout() {
       />
 
       {/* ── Pantallas sin pestaña (accesibles desde Perfil) ── */}
-      <Tabs.Screen name="rutina"      options={{ href: null }} />
-      <Tabs.Screen name="metas"       options={{ href: null }} />
-      <Tabs.Screen name="insights"    options={{ href: null }} />
-      <Tabs.Screen name="logros"      options={{ href: null }} />
-      <Tabs.Screen name="mis-datos"   options={{ href: null }} />
-      <Tabs.Screen name="suscripcion" options={{ href: null }} />
+      <Tabs.Screen name="rutina"         options={{ href: null }} />
+      <Tabs.Screen name="metas"          options={{ href: null }} />
+      <Tabs.Screen name="insights"       options={{ href: null }} />
+      <Tabs.Screen name="logros"         options={{ href: null }} />
+      <Tabs.Screen name="mis-datos"      options={{ href: null }} />
+      <Tabs.Screen name="suscripcion"    options={{ href: null }} />
+      <Tabs.Screen name="notificaciones" options={{ href: null }} />
     </Tabs>
   );
 }

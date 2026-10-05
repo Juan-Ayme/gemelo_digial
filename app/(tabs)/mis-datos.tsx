@@ -1,9 +1,13 @@
-import { Alert, Share, Text, View } from "react-native";
+import { useState } from "react";
+import { Alert, Pressable, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import { MotiView } from "moti";
 import {
+  AlertTriangle,
   Database,
   Download,
   FileText,
+  FileWarning,
   Shield,
   Trash2,
   UserX,
@@ -18,68 +22,76 @@ import { useGemelo } from "@hooks/useGemelo";
 import { useConsents } from "@hooks/useConsents";
 import { useProfile } from "@hooks/useProfile";
 import { useHistorial } from "@hooks/useHistorial";
+import { useExportarDatos, useEliminarCuenta } from "@hooks/useExportacion";
 import { colors } from "@theme/colors";
+import type { ProgresoExportacion } from "@services/exportacion";
 
-async function generarExportacionJSON(params: {
-  alias: string;
-  totalEventos: number;
-  consentimientos: Record<string, boolean> | undefined;
-  historialDias: number;
-}): Promise<string> {
-  const exportacion = {
-    aplicacion: "ando · Gemelo Digital",
-    version: "1.0.0",
-    exportadoEn: new Date().toISOString(),
-    titular: params.alias,
-    resumen: {
-      totalEventos: params.totalEventos,
-      diasConHistorial: params.historialDias,
-    },
-    consentimientos: params.consentimientos ?? {},
-    nota: "Este archivo contiene un resumen de tus datos de actividad registrados por ando. Los datos son de uso exclusivo del titular.",
-  };
-  return JSON.stringify(exportacion, null, 2);
+function BarraProgreso({ pct, label }: { pct: number; label: string }) {
+  return (
+    <View className="mt-3">
+      <View className="flex-row justify-between mb-1.5">
+        <Text className="text-ink-300 text-xs">{label}</Text>
+        <Text className="text-brand-300 text-xs font-semibold">{pct}%</Text>
+      </View>
+      <View className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+        <MotiView
+          animate={{ width: `${pct}%` }}
+          transition={{ type: "timing", duration: 300 }}
+          className="h-full rounded-full bg-brand-400"
+        />
+      </View>
+    </View>
+  );
 }
 
 export default function MisDatos() {
+  const router = useRouter();
   const { data: profile } = useProfile();
   const { data: gemelo } = useGemelo();
   const { data: consents } = useConsents();
   const { data: historial = [] } = useHistorial(30);
-  const signOut = useAuthStore((s) => s.signOut);
   const user = useAuthStore((s) => s.user);
+
+  const [progreso, setProgreso] = useState<ProgresoExportacion | null>(null);
+
+  const exportar = useExportarDatos((p) => setProgreso(p));
+  const eliminar = useEliminarCuenta();
 
   const alias = profile?.alias ?? "Usuario";
   const totalEventos = gemelo?.totalEventos ?? 0;
   const diasActivos = historial.filter((d) => d.totalEventos > 0).length;
+  const consentimientosActivos = Object.values(consents ?? {}).filter(Boolean).length;
+  const totalConsentimientos = Object.keys(consents ?? {}).length;
 
-  const handleExportar = async () => {
-    try {
-      const json = await generarExportacionJSON({
-        alias,
-        totalEventos,
-        consentimientos: consents,
-        historialDias: diasActivos,
-      });
-      await Share.share({
-        title: "Mis datos — ando Gemelo Digital",
-        message: json,
-      });
-    } catch (e) {
-      Alert.alert("Error", "No se pudo exportar. Inténtalo de nuevo.");
-    }
+  const handleExportar = () => {
+    setProgreso({ paso: "Iniciando…", progresoPct: 0 });
+    exportar.mutate(undefined, {
+      onSuccess: (ok) => {
+        if (!ok) {
+          Alert.alert("Sin soporte", "Tu dispositivo no soporta compartir archivos.");
+        }
+        setTimeout(() => setProgreso(null), 1500);
+      },
+      onError: () => {
+        Alert.alert("Error", "No se pudo generar la exportación. Intenta de nuevo.");
+        setProgreso(null);
+      },
+    });
   };
 
   const handleSolicitarAcceso = () => {
     Alert.alert(
-      "Derecho de Acceso (ARCO)",
-      `Se registrará una solicitud de acceso completo a tus datos vinculados al usuario ${user?.id?.slice(0, 8)}…. El equipo de investigación responderá en un plazo máximo de 15 días hábiles.`,
+      "Solicitud de acceso (ARCO)",
+      `Se registrará una solicitud de acceso completo a los datos del usuario ${user?.id?.slice(0, 8)}…\n\nEl equipo de investigación responderá en ≤ 15 días hábiles.`,
       [
         { text: "Cancelar", style: "cancel" },
         {
-          text: "Solicitar",
+          text: "Enviar solicitud",
           onPress: () =>
-            Alert.alert("Solicitud enviada", "Recibirás una respuesta por correo electrónico."),
+            Alert.alert(
+              "Solicitud registrada",
+              "Recibirás respuesta en investigacion@ando.pe en un plazo máximo de 15 días hábiles.",
+            ),
         },
       ],
     );
@@ -87,17 +99,38 @@ export default function MisDatos() {
 
   const handleEliminar = () => {
     Alert.alert(
-      "Eliminar cuenta y datos",
-      "Esta acción eliminará permanentemente tu perfil, eventos, predicciones y consentimientos. No es reversible.",
+      "⚠️ Eliminar cuenta",
+      "Esta acción eliminará PERMANENTEMENTE:\n\n• Tu perfil\n• Todos tus eventos y sensores\n• Historial de consentimientos\n• Predicciones del gemelo\n\nNo es reversible.",
       [
         { text: "Cancelar", style: "cancel" },
         {
-          text: "Eliminar todo",
+          text: "Entiendo, eliminar todo",
           style: "destructive",
-          onPress: async () => {
-            await signOut();
-            // En producción: llamar a Edge Function que borra en cascada
-            Alert.alert("Cuenta eliminada", "Tus datos han sido eliminados del sistema.");
+          onPress: () => {
+            Alert.alert(
+              "Confirmación final",
+              `¿Seguro que quieres eliminar la cuenta de ${alias}? Esta es tu última oportunidad de cancelar.`,
+              [
+                { text: "Cancelar", style: "cancel" },
+                {
+                  text: "Sí, eliminar mi cuenta",
+                  style: "destructive",
+                  onPress: () => {
+                    eliminar.mutate(undefined, {
+                      onSuccess: () => {
+                        router.replace("/(auth)/welcome" as any);
+                      },
+                      onError: () => {
+                        Alert.alert(
+                          "Error al eliminar",
+                          "No se pudieron borrar todos los datos. Prueba de nuevo o contacta a soporte.",
+                        );
+                      },
+                    });
+                  },
+                },
+              ],
+            );
           },
         },
       ],
@@ -105,9 +138,24 @@ export default function MisDatos() {
   };
 
   const stats = [
-    { label: "Eventos registrados", value: totalEventos.toString(), icon: Database, color: colors.brandCyan },
-    { label: "Días con actividad", value: `${diasActivos}`, icon: FileText, color: colors.accent.mint },
-    { label: "Consentimientos activos", value: `${Object.values(consents ?? {}).filter(Boolean).length} / ${Object.keys(consents ?? {}).length}`, icon: Shield, color: colors.violet },
+    {
+      label: "Eventos registrados",
+      value: totalEventos.toLocaleString("es-PE"),
+      icon: Database,
+      color: colors.brandCyan,
+    },
+    {
+      label: "Días con actividad",
+      value: `${diasActivos}`,
+      icon: FileText,
+      color: colors.accent.mint,
+    },
+    {
+      label: "Consentimientos activos",
+      value: `${consentimientosActivos} / ${totalConsentimientos}`,
+      icon: Shield,
+      color: colors.violet,
+    },
   ];
 
   return (
@@ -115,18 +163,20 @@ export default function MisDatos() {
       <View className="gap-1">
         <Text className="text-3xl font-bold text-white">Mis Datos</Text>
         <Text className="text-base text-ink-300">
-          Derechos ARCO: Acceso, Rectificación, Cancelación, Oposición.
+          Portabilidad y control total de tu información.
         </Text>
       </View>
 
-      <Chip
-        className="mt-4 self-start"
-        label="Protección de datos · Ley N° 29733"
-        tone="violet"
-        leadingIcon={<Shield size={12} color={colors.violet} />}
-      />
+      <View className="flex-row flex-wrap gap-2 mt-4">
+        <Chip
+          label="Ley N° 29733 Perú"
+          tone="violet"
+          leadingIcon={<Shield size={12} color={colors.violet} />}
+        />
+        <Chip label="ARCO" tone="brand" />
+      </View>
 
-      {/* ── Resumen de datos ── */}
+      {/* ── Resumen ── */}
       <Card glass className="mt-5">
         <Text className="text-white/80 text-xs uppercase tracking-widest font-semibold mb-3">
           Tus datos en ando
@@ -137,7 +187,7 @@ export default function MisDatos() {
               key={label}
               from={{ opacity: 0, translateX: -8 }}
               animate={{ opacity: 1, translateX: 0 }}
-              transition={{ delay: i * 80, type: "timing", duration: 300 }}
+              transition={{ delay: i * 70, type: "timing", duration: 280 }}
               className="flex-row items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/5"
             >
               <View
@@ -155,52 +205,114 @@ export default function MisDatos() {
         </View>
       </Card>
 
-      {/* ── Acciones ARCO ── */}
+      {/* ── Exportación real ── */}
       <Card className="mt-4">
-        <Text className="text-white font-semibold text-base mb-1">Ejercer mis derechos</Text>
+        <View className="flex-row items-center gap-2 mb-1">
+          <Download size={18} color={colors.brandCyan} />
+          <Text className="text-white font-semibold text-base">Exportar mis datos</Text>
+        </View>
         <Text className="text-ink-300 text-sm mb-4 leading-5">
-          Según la Ley N° 29733 de Protección de Datos Personales del Perú, puedes
-          acceder, rectificar, cancelar u oponerte al uso de tus datos en cualquier momento.
+          Genera un archivo JSON con{" "}
+          <Text className="text-white font-semibold">todos</Text> tus datos: perfil,
+          eventos de los últimos 90 días, consentimientos firmados, correcciones y
+          predicciones. Puedes compartirlo por correo, Drive o cualquier app.
         </Text>
 
-        <View className="gap-3">
-          <Button
-            variant="secondary"
-            label="Exportar mis datos (JSON)"
-            leadingIcon={<Download size={18} color={colors.brand} />}
-            onPress={handleExportar}
-          />
-          <Button
-            variant="secondary"
-            label="Solicitar acceso completo (ARCO)"
-            leadingIcon={<FileText size={18} color={colors.brand} />}
-            onPress={handleSolicitarAcceso}
-          />
-          <Button
-            variant="danger"
-            label="Eliminar cuenta y todos mis datos"
-            leadingIcon={<Trash2 size={18} color={colors.white} />}
-            onPress={handleEliminar}
-          />
+        {/* Barra de progreso */}
+        {progreso && (
+          <MotiView
+            from={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="mb-4"
+          >
+            <BarraProgreso pct={progreso.progresoPct} label={progreso.paso} />
+          </MotiView>
+        )}
+
+        <Button
+          variant="secondary"
+          label={exportar.isPending ? "Preparando exportación…" : "Descargar mis datos (JSON)"}
+          loading={exportar.isPending}
+          leadingIcon={<Download size={18} color={colors.brand} />}
+          onPress={handleExportar}
+        />
+
+        <Text className="text-[10px] text-ink-500 mt-2 text-center">
+          Incluye {totalEventos} eventos · {diasActivos} días de actividad
+        </Text>
+      </Card>
+
+      {/* ── Derechos ARCO ── */}
+      <Card className="mt-4">
+        <View className="flex-row items-center gap-2 mb-3">
+          <FileText size={18} color={colors.violet} />
+          <Text className="text-white font-semibold text-base">Ejercer derechos ARCO</Text>
         </View>
+        <Text className="text-ink-300 text-sm mb-4 leading-5">
+          Acceso · Rectificación · Cancelación · Oposición.{"\n"}
+          Derechos reconocidos por la Ley N° 29733 de Protección de Datos Personales del Perú.
+        </Text>
+        <Button
+          variant="secondary"
+          label="Solicitar acceso completo"
+          leadingIcon={<FileWarning size={18} color={colors.brand} />}
+          onPress={handleSolicitarAcceso}
+        />
       </Card>
 
       {/* ── Transparencia ── */}
-      <Card className="mt-4 mb-2">
+      <Card className="mt-4">
         <View className="flex-row items-center gap-2 mb-2">
           <Shield size={16} color={colors.violet} />
           <Text className="text-white font-semibold">Cómo usamos tus datos</Text>
         </View>
         {[
-          "📍 Las coordenadas GPS se convierten en zonas anónimas antes de guardarse. Nunca almacenamos tu ubicación exacta.",
-          "🔒 Cada tabla tiene Row Level Security activo: solo tú puedes ver tus datos.",
-          "🔬 Los datos de investigación se usan de forma anonimizada y agrupada, nunca de forma individual.",
-          "✅ Puedes revocar cualquier consentimiento en cualquier momento desde Perfil.",
-        ].map((txt, i) => (
-          <Text key={i} className="text-ink-300 text-xs mt-2 leading-5">
-            {txt}
+          { emoji: "📍", txt: "Las coordenadas GPS se convierten en zonas anónimas antes de guardarse. Nunca almacenamos tu ubicación exacta." },
+          { emoji: "🔒", txt: "RLS activo: solo tú accedes a tus datos. Ni el equipo de desarrollo puede leerlos sin autorización." },
+          { emoji: "🔬", txt: "Los datos de investigación se usan de forma anonimizada y agrupada. Nunca se te identifica individualmente." },
+          { emoji: "✅", txt: "Puedes revocar cualquier consentimiento en cualquier momento desde la sección Perfil → Consentimientos." },
+        ].map(({ emoji, txt }) => (
+          <Text key={emoji} className="text-ink-300 text-xs mt-2.5 leading-5">
+            {emoji}  {txt}
           </Text>
         ))}
+      </Card>
+
+      {/* ── Zona de peligro ── */}
+      <Card className="mt-4 mb-2 border border-rose-500/25">
+        <View className="flex-row items-center gap-2 mb-2">
+          <AlertTriangle size={18} color={colors.accent.coral} />
+          <Text className="text-rose-300 font-semibold text-base">Zona de peligro</Text>
+        </View>
+        <Text className="text-ink-300 text-sm mb-4 leading-5">
+          Eliminar tu cuenta borra{" "}
+          <Text className="text-white font-semibold">todos</Text> tus datos de los
+          servidores de forma permanente e irreversible.
+          {"\n\n"}Esta acción no puede deshacerse. Exporta tus datos primero si deseas conservarlos.
+        </Text>
+
+        {eliminar.isPending && (
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mb-3 bg-rose-500/10 border border-rose-500/20 rounded-xl p-3"
+          >
+            <Text className="text-rose-300 text-sm text-center font-semibold">
+              Eliminando datos… por favor espera.
+            </Text>
+          </MotiView>
+        )}
+
+        <Button
+          variant="danger"
+          label="Eliminar cuenta y todos mis datos"
+          loading={eliminar.isPending}
+          leadingIcon={<Trash2 size={18} color="#fff" />}
+          onPress={handleEliminar}
+        />
+        <Text className="text-rose-400/60 text-[10px] mt-2 text-center">
+          ID de usuario: {user?.id?.slice(0, 12)}…
+        </Text>
       </Card>
     </Screen>
   );

@@ -3,6 +3,7 @@ import { MotiView } from "moti";
 import {
   Activity,
   BookOpen,
+  Crown,
   Flame,
   Footprints,
   HeartPulse,
@@ -17,9 +18,11 @@ import {
 import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
 import { Chip } from "@components/ui/Chip";
+import { ProGate, ProBadge } from "@components/ui/ProGate";
 import { useSemanaResumen, useHistorial } from "@hooks/useHistorial";
 import { useGemelo } from "@hooks/useGemelo";
 import { useLogros, useEvaluarLogros } from "@hooks/useLogros";
+import { useEsPro } from "@hooks/useSuscripcion";
 import { ACTIVIDAD_LABELS } from "@services/types";
 import type { ActividadPredicha } from "@services/types";
 import { colors } from "@theme/colors";
@@ -212,6 +215,10 @@ export default function Insights() {
 
   const logrosDesbloqueados = logros.filter((l) => l.desbloqueado);
 
+  const esPro = useEsPro();
+  const insightsVisibles = esPro ? insights : insights.slice(0, 2);
+  const insightsBloqueados = esPro ? [] : insights.slice(2);
+
   return (
     <Screen scroll>
       <View className="gap-1">
@@ -221,9 +228,10 @@ export default function Insights() {
         </Text>
       </View>
 
-      <View className="flex-row gap-2 mt-4 flex-wrap">
+      <View className="flex-row gap-2 mt-4 flex-wrap items-center">
         <Chip label="Esta semana" tone="brand" leadingIcon={<Sparkles size={12} color={colors.brandCyan} />} />
         <Chip label={`${logrosDesbloqueados.length} logros`} tone="violet" leadingIcon={<Trophy size={12} color={colors.violet} />} />
+        {!esPro && <ProBadge label="PRO DISPONIBLE" />}
       </View>
 
       {/* ── Distribución de actividades ── */}
@@ -283,13 +291,40 @@ export default function Insights() {
 
       {/* ── Insights automáticos ── */}
       <View className="mt-4 gap-3">
-        <View className="flex-row items-center gap-2">
-          <Zap size={16} color={colors.accent.amber} />
-          <Text className="text-white font-semibold text-base">Observaciones del gemelo</Text>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2">
+            <Zap size={16} color={colors.accent.amber} />
+            <Text className="text-white font-semibold text-base">Observaciones del gemelo</Text>
+          </View>
+          {!esPro && (
+            <Text className="text-[11px] text-ink-400">
+              2 de {insights.length} visibles
+            </Text>
+          )}
         </View>
-        {insights.map((ins, i) => (
+
+        {insightsVisibles.map((ins, i) => (
           <InsightCard key={ins.titulo} {...ins} delay={i * 80} />
         ))}
+
+        {!esPro && insightsBloqueados.length > 0 && (
+          <ProGate
+            titulo="Observaciones profundas de tu rutina"
+            descripcion="Desbloquea el análisis completo de hábitos, correlaciones de descanso y predicciones de consistencia con ando Pro."
+            beneficios={[
+              `${insightsBloqueados.length} análisis adicionales disponibles esta semana`,
+              "Detección predictiva de desviaciones en tu rutina",
+              "Recomendaciones personalizadas basadas en tu modelo",
+            ]}
+          >
+            <View className="gap-3">
+              {insightsBloqueados.map((ins, i) => (
+                <InsightCard key={ins.titulo} {...ins} delay={i * 80} />
+              ))}
+            </View>
+          </ProGate>
+        )}
+
         {insights.length === 0 && (
           <Card>
             <Text className="text-ink-300 text-sm">

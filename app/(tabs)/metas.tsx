@@ -14,8 +14,10 @@ import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
 import { Chip } from "@components/ui/Chip";
 import { Button } from "@components/ui/Button";
+import { ProGate, ProBadge } from "@components/ui/ProGate";
 import { useMetas, useSaveMetas, useProgresoMetas } from "@hooks/useMetas";
 import { useEsPro } from "@hooks/useSuscripcion";
+import { useRouter } from "expo-router";
 import { colors } from "@theme/colors";
 import type { MetasConfig } from "@services/metas";
 
@@ -58,14 +60,35 @@ function MetaSlider({
   metaKey,
   value,
   onChange,
+  isPro,
+  onRequirePro,
 }: {
   metaKey: MetaKey;
   value: number;
   onChange: (v: number) => void;
+  isPro: boolean;
+  onRequirePro?: () => void;
 }) {
   const cfg = META_CONFIG[metaKey];
   const Icon = cfg.icon;
   const pct = ((value - cfg.min) / (cfg.max - cfg.min)) * 100;
+  const esBloqueado = !isPro && metaKey !== "pasos";
+
+  const handleMinus = () => {
+    if (esBloqueado) {
+      onRequirePro?.();
+      return;
+    }
+    onChange(Math.max(cfg.min, value - cfg.paso));
+  };
+
+  const handlePlus = () => {
+    if (esBloqueado) {
+      onRequirePro?.();
+      return;
+    }
+    onChange(Math.min(cfg.max, value + cfg.paso));
+  };
 
   return (
     <View className="bg-white/5 rounded-2xl p-4 border border-white/8">
@@ -78,6 +101,7 @@ function MetaSlider({
             <Icon size={16} color={cfg.color} />
           </View>
           <Text className="text-white font-semibold text-sm">{cfg.label}</Text>
+          {esBloqueado && <ProBadge label="PRO" />}
         </View>
         <View className="flex-row items-center gap-1 bg-white/10 rounded-full px-3 py-1">
           <Text className="text-white font-bold text-base">
@@ -92,8 +116,8 @@ function MetaSlider({
       {/* Barra interactiva con botones +/- */}
       <View className="flex-row items-center gap-3">
         <Pressable
-          onPress={() => onChange(Math.max(cfg.min, value - cfg.paso))}
-          className="w-9 h-9 rounded-full bg-white/10 items-center justify-center border border-white/15"
+          onPress={handleMinus}
+          className="w-9 h-9 rounded-full bg-white/10 items-center justify-center border border-white/15 active:opacity-70"
         >
           <Text className="text-white font-bold text-lg">−</Text>
         </Pressable>
@@ -108,8 +132,8 @@ function MetaSlider({
         </View>
 
         <Pressable
-          onPress={() => onChange(Math.min(cfg.max, value + cfg.paso))}
-          className="w-9 h-9 rounded-full bg-white/10 items-center justify-center border border-white/15"
+          onPress={handlePlus}
+          className="w-9 h-9 rounded-full bg-white/10 items-center justify-center border border-white/15 active:opacity-70"
         >
           <Text className="text-white font-bold text-lg">+</Text>
         </Pressable>
@@ -197,11 +221,26 @@ export default function Metas() {
   const { data: progreso } = useProgresoMetas();
   const saveMetas = useSaveMetas();
   const esPro = useEsPro();
+  const router = useRouter();
 
   const [editando, setEditando] = useState(false);
   const [draft, setDraft] = useState<MetasConfig | null>(null);
 
   const metasActuales = draft ?? metas ?? { pasos: 8_000, minutosActivos: 30, horasSueno: 7 };
+
+  const handleRequirePro = () => {
+    Alert.alert(
+      "Meta exclusiva ando Pro",
+      "La calibración personalizada de minutos activos y horas de sueño está disponible en ando Pro.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Ver ando Pro",
+          onPress: () => router.push("/(tabs)/suscripcion" as any),
+        },
+      ],
+    );
+  };
 
   const guardar = () => {
     saveMetas.mutate(metasActuales, {
@@ -221,9 +260,13 @@ export default function Metas() {
         </Text>
       </View>
 
-      <View className="flex-row gap-2 mt-4 flex-wrap">
+      <View className="flex-row gap-2 mt-4 flex-wrap items-center">
         <Chip label="Personal" tone="brand" leadingIcon={<Trophy size={12} color={colors.brandCyan} />} />
-        {esPro && <Chip label="ando Pro" tone="mint" />}
+        {esPro ? (
+          <Chip label="ando Pro" tone="mint" />
+        ) : (
+          <ProBadge label="FREE · METAS BÁSICAS" />
+        )}
       </View>
 
       {/* ── Anillos de progreso del día ── */}
@@ -307,6 +350,8 @@ export default function Metas() {
               key={k}
               metaKey={k}
               value={metasActuales[k]}
+              isPro={esPro}
+              onRequirePro={handleRequirePro}
               onChange={
                 editando
                   ? (v) => setDraft((prev) => ({ ...(prev ?? metasActuales), [k]: v }))
@@ -315,6 +360,15 @@ export default function Metas() {
             />
           ))}
         </View>
+
+        {!esPro && (
+          <View className="mt-4">
+            <ProGate
+              mode="banner"
+              descripcion="Calibra tus minutos activos y objetivos de sueño a tu ritmo con ando Pro."
+            />
+          </View>
+        )}
 
         {editando && (
           <View className="flex-row gap-3 mt-4">

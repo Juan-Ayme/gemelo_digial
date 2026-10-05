@@ -20,6 +20,7 @@ import { Button } from "@components/ui/Button";
 import { AnimatedNumber } from "@components/ui/AnimatedNumber";
 import { AlertaSaludCard } from "@components/ui/AlertaSaludCard";
 import { ValidacionActividadCard } from "@components/ui/ValidacionActividadCard";
+import { NuevaZonaCard } from "@components/ui/NuevaZonaCard";
 import { ConfianzaRing } from "@components/gemelo/ConfianzaRing";
 import { useProfile } from "@hooks/useProfile";
 import { useConsents } from "@hooks/useConsents";
@@ -41,7 +42,17 @@ export default function Hoy() {
 
   // IDs de alertas descartadas por el usuario en esta sesión
   const [descartadas, setDescartadas] = useState<Set<string>>(new Set());
+  const [zonaDescartada, setZonaDescartada] = useState<string | null>(null);
   const alertasVisibles = alertas.filter((a) => !descartadas.has(a.id));
+
+  const zonaActual = gemelo?.zonaActual;
+  const zonaSinAlias =
+    zonaActual &&
+    zonaActual !== "—" &&
+    !aliasZonas?.[zonaActual] &&
+    zonaDescartada !== zonaActual
+      ? zonaActual
+      : null;
 
   const alias = profile?.alias ?? "Usuario";
   const hoy = format(new Date(), "EEEE d 'de' MMMM", { locale: es });
@@ -101,6 +112,14 @@ export default function Hoy() {
         zonaActual={gemelo?.zonaActual}
         delay={120}
       />
+
+      {/* ── Sugerencia contextual para etiquetar nueva zona detectada ── */}
+      {zonaSinAlias && (
+        <NuevaZonaCard
+          codigoZona={zonaSinAlias}
+          onDescartar={() => setZonaDescartada(zonaSinAlias)}
+        />
+      )}
 
       <View className="mt-4 flex-row gap-3">
         <StatTile icon={<Footprints size={18} color={colors.brandCyan} />} label="Pasos" value={gemelo?.pasosHoy ?? 0} delay={140} />

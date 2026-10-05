@@ -23,6 +23,7 @@ import {
 import { useAuthStore } from "@stores/authStore";
 import { asyncStoragePersister, queryClient } from "@lib/queryClient";
 import { registrarTareaSegundoPlano } from "@services/backgroundCapture";
+import { useNotificacionesAutomaticas } from "@hooks/useNotificaciones";
 
 // En web, NativeWind lanza "dark mode is type 'media'" si algo intenta fijar el
 // esquema. Fijamos el flag a 'class' para evitarlo. La app usa colores claros
@@ -70,6 +71,11 @@ console.error = (...args: Parameters<typeof console.error>) => {
   _consoleError(...args);
 };
 
+function AppInner() {
+  useNotificacionesAutomaticas();
+  return <Slot />;
+}
+
 export default function RootLayout() {
   const initAuth = useAuthStore((s) => s.init);
   const authReady = useAuthStore((s) => s.initialized);
@@ -111,7 +117,7 @@ export default function RootLayout() {
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <Slot />
+          <AppInner />
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </PersistQueryClientProvider>

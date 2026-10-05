@@ -15,7 +15,10 @@
         "NSMotionUsageDescription": "ando registra tu actividad física (pasos y movimiento) para construir tu rutina personal.",
         "NSLocationWhenInUseUsageDescription": "ando usa tu ubicación general para identificar zonas frecuentes (hogar, campus, tránsito). No conserva coordenadas exactas.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "ando puede identificar zonas frecuentes en segundo plano para completar tu rutina cuando la app no esté abierta.",
-        "UIBackgroundModes": ["fetch", "processing"]
+        "UIBackgroundModes": [
+          "fetch",
+          "processing"
+        ]
       }
     },
     "android": {
@@ -83,7 +86,8 @@
             "minSdkVersion": 26
           }
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

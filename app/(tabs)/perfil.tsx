@@ -157,14 +157,8 @@ export default function Perfil() {
         <NavRow icon={Target}     label="Mis Metas" sub="Pasos, actividad, sueño" color={colors.accent.mint}  onPress={() => router.push("/(tabs)/metas" as any)}       delay={80} />
         <NavRow icon={BarChart3}  label="Insights"  sub="Tendencias semanales"    color={colors.accent.amber} onPress={() => router.push("/(tabs)/insights" as any)}    delay={100} />
         <NavRow icon={Trophy}     label="Logros"    sub="Badges desbloqueados"    color={colors.accent.coral} onPress={() => router.push("/(tabs)/logros" as any)}      delay={120} badge={sub?.datosAportados ? undefined : undefined} />
-        <NavRow
-          icon={Activity}
-          label="Rutina de hoy"
-          sub="Línea de tiempo completa"
-          color={colors.violet}
-          onPress={() => router.push("/(tabs)/rutina" as any)}
-          delay={140}
-        />
+        <NavRow icon={Activity}   label="Rutina de hoy"  sub="Línea de tiempo completa"  color={colors.violet}       onPress={() => router.push("/(tabs)/rutina" as any)}         delay={140} />
+        <NavRow icon={Bell}       label="Notificaciones" sub="Alertas y recordatorios"    color={colors.accent.coral} onPress={() => router.push("/(tabs)/notificaciones" as any)} delay={155} />
       </Card>
 
       {/* ── Plan y datos ── */}

@@ -8,6 +8,9 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { DiaResumen } from "@services/historial";
+import { isRemote } from "@services/mode";
+import { supabase } from "@lib/supabase";
+import { TABLES, OWNER_COL } from "@services/schema";
 
 export type LogroId =
   | "primer_captura"
@@ -126,6 +129,50 @@ export async function fetchLogros(userId: string): Promise<Logro[]> {
   try {
     const raw = await AsyncStorage.getItem(KEY(userId));
     const desbloqueados: Record<string, string> = raw ? JSON.parse(raw) : {};
+
+    // Sincronización con Supabase si está disponible
+    if (isRemote()) {
+      try {
+        const { data, error } = await supabase!
+          .from(TABLES.logrosUsuario)
+          .select("logro_id, desbloqueado_en")
+          .eq(OWNER_COL, userId);
+
+        if (!error && Array.isArray(data)) {
+          let cambio = false;
+
+          // 1. Incorporar remotos a local
+          for (const row of data) {
+            if (!desbloqueados[row.logro_id]) {
+              desbloqueados[row.logro_id] = row.desbloqueado_en;
+              cambio = true;
+            }
+          }
+
+          // 2. Subir a Supabase los logros que estaban solo en local (desbloqueados offline)
+          const idsRemotos = new Set(data.map((r: { logro_id: string }) => r.logro_id));
+          const pendientesDeSubir = Object.entries(desbloqueados).filter(
+            ([id]) => !idsRemotos.has(id),
+          );
+
+          if (pendientesDeSubir.length > 0) {
+            const filas = pendientesDeSubir.map(([logroId, fecha]) => ({
+              usuario_id: userId,
+              logro_id: logroId,
+              desbloqueado_en: fecha,
+            }));
+            await supabase!.from(TABLES.logrosUsuario).upsert(filas);
+          }
+
+          if (cambio) {
+            await AsyncStorage.setItem(KEY(userId), JSON.stringify(desbloqueados));
+          }
+        }
+      } catch (err) {
+        console.warn("Error al sincronizar logros con Supabase:", err);
+      }
+    }
+
     return CATALOGO.map((l) => ({
       ...l,
       desbloqueado: !!desbloqueados[l.id],
@@ -140,8 +187,22 @@ export async function desbloquearLogro(userId: string, id: LogroId): Promise<voi
   const raw = await AsyncStorage.getItem(KEY(userId));
   const desbloqueados: Record<string, string> = raw ? JSON.parse(raw) : {};
   if (!desbloqueados[id]) {
-    desbloqueados[id] = new Date().toISOString();
+    const fecha = new Date().toISOString();
+    desbloqueados[id] = fecha;
     await AsyncStorage.setItem(KEY(userId), JSON.stringify(desbloqueados));
+
+    // Persistir en Supabase en segundo plano si está conectado
+    if (isRemote()) {
+      try {
+        await supabase!.from(TABLES.logrosUsuario).upsert({
+          usuario_id: userId,
+          logro_id: id,
+          desbloqueado_en: fecha,
+        });
+      } catch (err) {
+        console.warn(`No se pudo persistir logro ${id} en Supabase:`, err);
+      }
+    }
   }
 }
 

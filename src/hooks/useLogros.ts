@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@stores/authStore";
+import { qk } from "@lib/queryClient";
 import {
   fetchLogros,
   desbloquearLogro,
@@ -10,12 +11,10 @@ import { useHistorial } from "@hooks/useHistorial";
 import { useConsents } from "@hooks/useConsents";
 import { useGemelo } from "@hooks/useGemelo";
 
-const qkLogros = (userId: string) => ["logros", userId] as const;
-
 export function useLogros() {
   const userId = useAuthStore((s) => s.user?.id ?? null);
   return useQuery({
-    queryKey: userId ? qkLogros(userId) : ["logros-anon"],
+    queryKey: userId ? qk.logros(userId) : ["logros-anon"],
     enabled: !!userId,
     queryFn: () => fetchLogros(userId!),
     staleTime: 1000 * 60 * 5,
@@ -28,7 +27,7 @@ export function useDesbloquearLogro() {
   return useMutation({
     mutationFn: (id: LogroId) => desbloquearLogro(userId!, id),
     onSuccess: () => {
-      if (userId) qc.invalidateQueries({ queryKey: qkLogros(userId) });
+      if (userId) qc.invalidateQueries({ queryKey: qk.logros(userId) });
     },
   });
 }

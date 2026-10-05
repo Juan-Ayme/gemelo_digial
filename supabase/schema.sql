@@ -37,7 +37,7 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- 2) Tabla de calibración y feedback (si aún no existe en ando_schema) ---------
+-- 2) Tablas adicionales de la app (calibración y gamificación) -----------------
 create table if not exists public.correcciones_actividad (
   id uuid primary key default gen_random_uuid(),
   usuario_id uuid not null references auth.users (id) on delete cascade,
@@ -48,6 +48,14 @@ create table if not exists public.correcciones_actividad (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.logros_usuario (
+  id uuid primary key default gen_random_uuid(),
+  usuario_id uuid not null references auth.users (id) on delete cascade,
+  logro_id text not null,
+  desbloqueado_en timestamptz not null default now(),
+  unique (usuario_id, logro_id)
+);
+
 -- 3) RLS + permisos + política por titular ------------------------------------
 -- Todas estas tablas tienen `usuario_id`, así que aplican la misma regla.
 do $$
@@ -56,7 +64,7 @@ begin
   foreach t in array array[
     'perfiles', 'consentimientos', 'dispositivos', 'fuentes_datos', 'eventos_crudos',
     'caracteristicas_actividad', 'predicciones', 'lineas_base', 'variaciones_rutina',
-    'correcciones_actividad', 'solicitudes_derechos'
+    'correcciones_actividad', 'solicitudes_derechos', 'logros_usuario'
   ]
   loop
     execute format('alter table public.%I enable row level security', t);
@@ -81,3 +89,17 @@ create policy "modelos_lectura" on public.versiones_modelo
 
 -- Nota: `registros_auditoria` se deja solo para el backend (service_role); no se
 -- conceden permisos al rol autenticado a propósito.
+
+-- 4) Índices de alto rendimiento para consultas móviles -----------------------
+-- Consultas de historial y eventos crudos (7/14/30 días)
+create index if not exists idx_eventos_crudos_usuario_inicio
+  on public.eventos_crudos (usuario_id, inicio_en desc);
+
+-- Ventanas de actividad para predicción Random Forest
+create index if not exists idx_caract_actividad_usuario_inicio
+  on public.caracteristicas_actividad (usuario_id, ventana_inicio desc);
+
+-- Consultas rápidas de consentimientos vigentes por categoría
+create index if not exists idx_consentimientos_usuario_categoria
+  on public.consentimientos (usuario_id, categoria, concedido_en desc);
+

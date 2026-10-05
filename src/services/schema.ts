@@ -14,6 +14,7 @@ export const TABLES = {
   lineasBase: "lineas_base",
   variacionesRutina: "variaciones_rutina",
   versionesModelo: "versiones_modelo",
+  logrosUsuario: "logros_usuario",
 } as const;
 
 /** Columna FK al titular (auth.users.id) presente en todas las tablas con RLS. */
