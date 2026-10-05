@@ -1,0 +1,41 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@stores/authStore";
+import { fetchMetas, saveMetas, calcularProgreso } from "@services/metas";
+import { useGemelo } from "@hooks/useGemelo";
+import type { MetasConfig } from "@services/metas";
+
+const qkMetas = (userId: string) => ["metas", userId] as const;
+
+export function useMetas() {
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+  return useQuery({
+    queryKey: userId ? qkMetas(userId) : ["metas-anon"],
+    enabled: !!userId,
+    queryFn: () => fetchMetas(userId!),
+    staleTime: 1000 * 60 * 60, // 1 h
+  });
+}
+
+export function useSaveMetas() {
+  const qc = useQueryClient();
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+  return useMutation({
+    mutationFn: (metas: MetasConfig) => saveMetas(userId!, metas),
+    onSuccess: () => {
+      if (userId) qc.invalidateQueries({ queryKey: qkMetas(userId) });
+    },
+  });
+}
+
+export function useProgresoMetas() {
+  const { data: metas } = useMetas();
+  const { data: gemelo } = useGemelo();
+  if (!metas || !gemelo) return { data: null };
+  return {
+    data: calcularProgreso(metas, {
+      pasosHoy: gemelo.pasosHoy,
+      minutosActivos: gemelo.minutosActivos,
+      minutosDescanso: gemelo.minutosDescanso,
+    }),
+  };
+}

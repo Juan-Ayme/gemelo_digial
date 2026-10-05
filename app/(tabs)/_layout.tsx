@@ -57,9 +57,9 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="rutina"
+        name="historial"
         options={{
-          title: "Rutina",
+          title: "Historial",
           tabBarIcon: ({ color, size }) => <CalendarDays size={size} color={color} />,
         }}
       />
@@ -77,6 +77,14 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => <UserCircle size={size} color={color} />,
         }}
       />
+
+      {/* ── Pantallas sin pestaña (accesibles desde Perfil) ── */}
+      <Tabs.Screen name="rutina"      options={{ href: null }} />
+      <Tabs.Screen name="metas"       options={{ href: null }} />
+      <Tabs.Screen name="insights"    options={{ href: null }} />
+      <Tabs.Screen name="logros"      options={{ href: null }} />
+      <Tabs.Screen name="mis-datos"   options={{ href: null }} />
+      <Tabs.Screen name="suscripcion" options={{ href: null }} />
     </Tabs>
   );
 }
