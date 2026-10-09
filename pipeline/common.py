@@ -78,14 +78,20 @@ def construir_features(eventos):
         .groupBy("usuario_id", "h")
         .agg(F.sum("valor_numerico").alias("pasos_ventana"))
     )
-    act = eventos.filter(F.col("valor_texto").isNotNull())
+    act = eventos.filter(F.col("valor_texto").isNotNull() & F.col("inicio_en").isNotNull())
     w = Window.partitionBy("usuario_id").orderBy("inicio_en")
     return (
         act.withColumn("actividad_actual", F.col("valor_texto"))
         .withColumn("actividad_anterior", F.coalesce(F.lag("valor_texto").over(w), F.lit("ninguna")))
         .withColumn("etiqueta_siguiente", F.lead("valor_texto").over(w))
         .withColumn("ventana_inicio", F.col("inicio_en"))
-        .withColumn("ventana_fin", F.coalesce("fin_en", "inicio_en"))
+        .withColumn(
+            "ventana_fin",
+            F.when(
+                F.col("fin_en").isNotNull() & (F.col("fin_en") > F.col("inicio_en")),
+                F.col("fin_en"),
+            ).otherwise(F.expr("inicio_en + interval 30 minutes")),
+        )
         .withColumn("hora_dec", F.hour("inicio_en") + F.minute("inicio_en") / 60.0)
         .withColumn("hora_seno", F.sin(F.col("hora_dec") / 24.0 * 2 * math.pi))
         .withColumn("hora_coseno", F.cos(F.col("hora_dec") / 24.0 * 2 * math.pi))
@@ -139,12 +145,15 @@ def registrar_modelo(spark, url: str, metrics: dict, num_trees: int, seed: int, 
 
 def escribir_caracteristicas(url: str, feat):
     """Solo válido con usuario_id reales (FK a perfiles)."""
-    caracteristicas = feat.select(
-        "usuario_id", "ventana_inicio", "ventana_fin", "hora_seno", "hora_coseno",
-        F.col("dia_semana").cast("short").alias("dia_semana"),
-        "actividad_actual", "actividad_anterior",
-        F.col("pasos_ventana").cast("int").alias("pasos_ventana"),
-        "zona_general", "etiqueta_siguiente",
+    caracteristicas = (
+        feat.select(
+            "usuario_id", "ventana_inicio", "ventana_fin", "hora_seno", "hora_coseno",
+            F.col("dia_semana").cast("short").alias("dia_semana"),
+            "actividad_actual", "actividad_anterior",
+            F.col("pasos_ventana").cast("int").alias("pasos_ventana"),
+            "zona_general", "etiqueta_siguiente",
+        )
+        .filter(F.col("ventana_fin") > F.col("ventana_inicio"))
     )
     escribir_jdbc(caracteristicas, url, "caracteristicas_actividad")
 
