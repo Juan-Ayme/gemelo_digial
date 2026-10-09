@@ -56,19 +56,24 @@ export type Prediccion = {
   explicacion: string;
   generadaEn: string;
   importancias?: Record<string, number>;
+  estimacionLocal?: boolean;
 };
 
 export type GemeloSnapshot = {
   pasosHoy: number;
   minutosActivos: number;
   minutosDescanso: number;
+  minutosSueno?: number;
+  ultimaLectura?: string | null;
+  ultimaActividadEn?: string | null;
+  tieneDuracionActividad?: boolean;
   zonaActual: string;
   ultimaActividad: ActividadPredicha | null;
   prediccion: Prediccion | null;
   variacion: NivelVariacion;
   fuentes: FuenteEstado[];
   totalEventos: number;
-  fuentePrediccion?: "rf" | "rf_local" | "heuristica";
+  fuentePrediccion?: "rf" | "reglas" | "rf_local" | "heuristica";
   analisisVariacion?: {
     nivel: NivelVariacion;
     desviacionPct: number;

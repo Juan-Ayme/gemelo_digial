@@ -96,7 +96,7 @@ const CATALOGO: Omit<Logro, "desbloqueado" | "fechaDesbloqueo">[] = [
   {
     id: "buen_dormidor",
     titulo: "Buen dormidor",
-    descripcion: "Dormiste entre 7 y 9 horas (OMS)",
+    descripcion: "Registraste una sesión de sueño de entre 7 y 9 horas",
     emoji: "😴",
     categoria: "salud",
   },
@@ -116,8 +116,8 @@ const CATALOGO: Omit<Logro, "desbloqueado" | "fechaDesbloqueo">[] = [
   },
   {
     id: "investigador",
-    titulo: "Colaborador científico",
-    descripcion: "Activaste el consentimiento de investigación",
+    titulo: "Pionero del modelo",
+    descripcion: "Activaste la contribución para calibrar el modelo",
     emoji: "🔬",
     categoria: "investigacion",
   },
@@ -211,6 +211,7 @@ export function evaluarLogros(
   historial: DiaResumen[],
   totalEventos: number,
   tieneConsentInvestigacion: boolean,
+  metaPasos = 8000,
 ): LogroId[] {
   const nuevos: LogroId[] = [];
 
@@ -226,14 +227,14 @@ export function evaluarLogros(
   if (racha >= 7) nuevos.push("racha_7_dias");
 
   // Metas de pasos
-  const diasConMeta = historial.filter((d) => d.pasosHoy >= 8_000).length;
+  const diasConMeta = historial.filter((d) => d.tienePasos && d.pasosHoy >= metaPasos).length;
   if (diasConMeta >= 1) nuevos.push("meta_pasos_1");
   if (diasConMeta >= 7) nuevos.push("meta_pasos_7");
 
   // Records personales
   if (historial.some((d) => d.pasosHoy >= 10_000)) nuevos.push("caminador");
   if (historial.some((d) => d.minutosActivos >= 60)) nuevos.push("atleta");
-  if (historial.some((d) => d.minutosDescanso >= 420 && d.minutosDescanso <= 540))
+  if (historial.some((d) => d.tieneSueno && (d.minutosSueno ?? 0) >= 420 && (d.minutosSueno ?? 0) <= 540))
     nuevos.push("buen_dormidor");
 
   if (tieneConsentInvestigacion) nuevos.push("investigador");

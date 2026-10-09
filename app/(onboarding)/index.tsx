@@ -7,15 +7,15 @@ import {
   StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { MotiView, AnimatePresence } from "moti";
+import { MotiView } from "moti";
 import {
   Activity,
-  ArrowRight,
   Bell,
   Brain,
+  CheckCircle2,
   ChevronRight,
+  Cpu,
   Database,
-  FlaskConical,
   Heart,
   Lock,
   MapPin,
@@ -30,83 +30,78 @@ import { marcarOnboardingCompletado } from "@services/onboarding";
 import { solicitarPermisosNotificacion } from "@services/notificaciones";
 import { colors } from "@theme/colors";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 // ─── Datos de cada slide ──────────────────────────────────────────────────────
 
 const SLIDES = [
   {
     id: "bienvenida",
-    gradiente: ["#0e1224", "#0d2136", "#062f2e"] as const,
+    gradiente: ["#030807", "#061813", "#0c1a16"] as const,
     acento: colors.brandCyan,
     icono: Sparkles,
-    emoji: "✨",
     titulo: "Tu Gemelo Digital",
-    subtitulo: "Una copia inteligente de ti",
+    subtitulo: "Un compañero para entender tus días",
     descripcion:
-      "ando aprende de tus sensores —pasos, movimiento, zonas y hábitos— para construir un modelo personalizado de tu vida cotidiana.",
+      "Observa los momentos que decidas registrar, conoce tu semana y elige un pequeño cambio a tu ritmo.",
     extra: null,
   },
   {
     id: "como-funciona",
-    gradiente: ["#0e1224", "#1a0e2e", "#0e1224"] as const,
-    acento: colors.violet,
+    gradiente: ["#030807", "#081622", "#07121b"] as const,
+    acento: colors.brandCyan,
     icono: Brain,
-    emoji: "🧠",
-    titulo: "Random Forest en tu bolsillo",
-    subtitulo: "IA que corre en tu teléfono",
+    titulo: "De tus datos a tu día",
+    subtitulo: "Empieza con un registro sencillo",
     descripcion:
-      "Un algoritmo de aprendizaje automático analiza tus patrones de actividad para predecir qué harás a continuación y detectar variaciones en tu rutina.",
+      "Las reglas generales del teléfono ofrecen estimaciones. Una predicción del modelo en la nube solo aparece cuando está disponible y vigente.",
     extra: [
-      { icon: Activity, text: "Acelerómetro + GPS" },
-      { icon: Heart, text: "Frecuencia cardíaca" },
-      { icon: Zap, text: "Predicción < 2ms" },
+      { icon: Activity, text: "Acelerómetro + Sensores del dispositivo" },
+      { icon: Heart, text: "Frecuencia cardíaca y descanso" },
+      { icon: Zap, text: "Sin lecturas inventadas cuando faltan datos" },
     ],
   },
   {
     id: "privacidad",
-    gradiente: ["#0e1224", "#0e1f12", "#0e1224"] as const,
+    gradiente: ["#030807", "#061812", "#04140e"] as const,
     acento: colors.accent.mint,
     icono: Shield,
-    emoji: "🔒",
     titulo: "Privacidad por diseño",
-    subtitulo: "Tus datos son solo tuyos",
+    subtitulo: "Tus datos son exclusivamente tuyos",
     descripcion:
-      "Nunca almacenamos tu ubicación exacta. Las coordenadas GPS se transforman en zonas anónimas. Solo tú accedes a tus datos mediante Row Level Security.",
+      "Nunca almacenamos tu ubicación exacta. El GPS se transforma en códigos de zona anónimos. El acceso de las cuentas se controla con RLS. Los registros locales se guardan en el teléfono.",
     extra: [
-      { icon: MapPin, text: "Zonas anónimas, no coordenadas" },
-      { icon: Lock, text: "RLS: solo tú puedes leer tus datos" },
+      { icon: MapPin, text: "Zonas opacas, nunca coordenadas GPS" },
+      { icon: Lock, text: "Seguridad RLS: solo tú lees tus datos" },
       { icon: Database, text: "Exportación completa en cualquier momento" },
     ],
   },
   {
-    id: "investigacion",
-    gradiente: ["#0e1224", "#1a1204", "#0e1224"] as const,
-    acento: colors.accent.amber,
-    icono: FlaskConical,
-    emoji: "🔬",
-    titulo: "Proyecto académico UNSCH",
-    subtitulo: "Ciencia con propósito, Ayacucho 2026",
+    id: "calibracion",
+    gradiente: ["#030807", "#0a1916", "#061310"] as const,
+    acento: colors.brand,
+    icono: Cpu,
+    titulo: "Un cambio que tú eliges",
+    subtitulo: "Algo pequeño que te ayude",
     descripcion:
-      "Si participas en la investigación, tus datos anonimizados contribuyen a estudios sobre actividad humana y gemelos digitales. Siempre con tu consentimiento explícito.",
+      "Elige un pequeño cambio y marca cuándo lo haces. Prepara mañana con los horarios que te sirvan, sin exigir un día perfecto.",
     extra: [
-      { icon: UserCheck, text: "Participación voluntaria" },
-      { icon: Shield, text: "Ley N° 29733 — Datos Personales Perú" },
-      { icon: FlaskConical, text: "Resultados publicados abiertamente" },
+      { icon: UserCheck, text: "Colaboración voluntaria y revocable" },
+      { icon: Shield, text: "Protección bajo Ley N° 29733" },
+      { icon: Cpu, text: "Planes elegidos por ti" },
     ],
   },
   {
     id: "notificaciones",
-    gradiente: ["#0e1224", "#1f0e14", "#0e1224"] as const,
-    acento: colors.accent.coral,
+    gradiente: ["#030807", "#121d19", "#061410"] as const,
+    acento: colors.brandCyan,
     icono: Bell,
-    emoji: "🔔",
-    titulo: "Alertas que cuidan tu salud",
-    subtitulo: "Solo lo que importa, cuando importa",
+    titulo: "Recordatorios a tu medida",
+    subtitulo: "Información relevante en el momento justo",
     descripcion:
-      "ando puede avisarte cuando detecta sedentarismo prolongado, frecuencia cardíaca fuera del rango, o cuando alcanzas tu meta del día.",
+      "Puedes programar un recordatorio para un momento de tu plan. Necesita tu consentimiento y los permisos del teléfono.",
     extra: null,
-    accionLabel: "Activar notificaciones (recomendado)",
+    accionLabel: "Elegir permisos de notificación",
     esUltimoConAccion: true,
   },
 ] as const;
@@ -146,15 +141,15 @@ function Slide({
             className="w-28 h-28 rounded-[40px] items-center justify-center"
             style={{
               backgroundColor: `${acento}18`,
-              borderWidth: 1,
-              borderColor: `${acento}30`,
+              borderWidth: 1.5,
+              borderColor: `${acento}35`,
               shadowColor: acento,
-              shadowOpacity: 0.4,
+              shadowOpacity: 0.45,
               shadowRadius: 30,
               shadowOffset: { width: 0, height: 0 },
             }}
           >
-            <Text style={{ fontSize: 52 }}>{slide.emoji}</Text>
+            <Icon size={46} color={acento} strokeWidth={2.2} />
           </View>
         </MotiView>
 
@@ -214,23 +209,22 @@ function Slide({
             {!notifActivadas ? (
               <Pressable
                 onPress={onActivarNotif}
-                className="w-full py-4 rounded-2xl items-center border"
+                className="w-full py-4 rounded-2xl items-center border flex-row justify-center gap-2"
                 style={{ backgroundColor: `${acento}18`, borderColor: `${acento}40` }}
               >
+                <Bell size={18} color={acento} />
                 <Text className="font-bold text-base" style={{ color: acento }}>
-                  🔔 Activar notificaciones
-                </Text>
-                <Text className="text-ink-400 text-xs mt-1">
-                  Puedes cambiar esto en cualquier momento
+                  Activar notificaciones
                 </Text>
               </Pressable>
             ) : (
-              <View className="w-full py-4 rounded-2xl items-center bg-emerald-500/10 border border-emerald-400/30">
-                <Text className="text-emerald-300 font-bold text-base">✅ Notificaciones activadas</Text>
+              <View className="w-full py-4 rounded-2xl items-center bg-emerald-500/10 border border-emerald-400/30 flex-row justify-center gap-2">
+                <CheckCircle2 size={18} color={colors.accent.mint} />
+                <Text className="text-emerald-300 font-bold text-base">Notificaciones activadas</Text>
               </View>
             )}
             <Text className="text-ink-500 text-xs text-center mt-3">
-              También puedes omitir esto y activarlas luego en Perfil
+              También puedes omitir esto y configurarlas luego en Perfil
             </Text>
           </MotiView>
         )}
@@ -272,7 +266,7 @@ export default function Onboarding() {
   const slide = SLIDES[slideActual];
 
   return (
-    <View className="flex-1 bg-surface-900">
+    <View className="flex-1 bg-surface-lowest">
       <StatusBar barStyle="light-content" />
 
       {/* Gradiente de fondo dinámico */}
@@ -329,13 +323,13 @@ export default function Onboarding() {
           className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-80"
           style={{ backgroundColor: slide.acento }}
         >
-          <Text className="font-bold text-lg text-surface-900">
+          <Text className="font-bold text-lg text-ink-950">
             {esUltimo ? "Comenzar" : "Siguiente"}
           </Text>
           {esUltimo ? (
-            <Sparkles size={20} color="#0e1224" />
+            <Sparkles size={20} color="#022c22" />
           ) : (
-            <ChevronRight size={20} color="#0e1224" />
+            <ChevronRight size={20} color="#022c22" />
           )}
         </Pressable>
       </View>

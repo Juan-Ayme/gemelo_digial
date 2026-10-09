@@ -2,15 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@stores/authStore";
 import { fetchSuscripcion, activarPro } from "@services/suscripcion";
 
-const qkSub = (userId: string) => ["suscripcion", userId] as const;
+import { qk } from "@lib/queryClient";
 
 export function useSuscripcion() {
   const userId = useAuthStore((s) => s.user?.id ?? null);
   return useQuery({
-    queryKey: userId ? qkSub(userId) : ["sub-anon"],
+    queryKey: userId ? qk.suscripcion(userId) : ["sub-anon"],
     enabled: !!userId,
     queryFn: () => fetchSuscripcion(userId!),
-    staleTime: 1000 * 60 * 60,
+    staleTime: 60000,
+    refetchInterval: 60000,
   });
 }
 
@@ -20,7 +21,7 @@ export function useActivarPro() {
   return useMutation({
     mutationFn: () => activarPro(userId!),
     onSuccess: () => {
-      if (userId) qc.invalidateQueries({ queryKey: qkSub(userId) });
+      if (userId) qc.invalidateQueries({ queryKey: qk.suscripcion(userId) });
     },
   });
 }

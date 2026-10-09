@@ -62,7 +62,7 @@ export function ValidacionActividadCard({ prediccion, zonaActual, delay = 100 }:
   const handleConfirmar = () => {
     if (procesando) return;
     setProcesando(true);
-    setMensajeExito("¡Confirmado! Tu gemelo aprende de tu momento actual.");
+
 
     registrar.mutate(
       {
@@ -72,9 +72,8 @@ export function ValidacionActividadCard({ prediccion, zonaActual, delay = 100 }:
         zonaActual,
       },
       {
-        onSettled: () => {
-          setTimeout(() => setDescartado(true), 2000);
-        },
+        onSuccess: () => { setMensajeExito("Actividad guardada. Gracias por confirmar tu registro."); setProcesando(false); },
+        onError: () => setProcesando(false),
       },
     );
   };
@@ -82,9 +81,7 @@ export function ValidacionActividadCard({ prediccion, zonaActual, delay = 100 }:
   const handleCorregir = (nuevaActividad: ActividadPredicha) => {
     if (procesando) return;
     setProcesando(true);
-    setMensajeExito(
-      `Actualizado a "${ACTIVIDAD_LABELS[nuevaActividad]}". Tu gemelo afinará su próxima estimación.`,
-    );
+
 
     registrar.mutate(
       {
@@ -94,9 +91,8 @@ export function ValidacionActividadCard({ prediccion, zonaActual, delay = 100 }:
         zonaActual,
       },
       {
-        onSettled: () => {
-          setTimeout(() => setDescartado(true), 2000);
-        },
+        onSuccess: () => { setMensajeExito("Actividad guardada. Gracias por confirmar tu registro."); setProcesando(false); },
+        onError: () => setProcesando(false),
       },
     );
   };
@@ -143,10 +139,11 @@ export function ValidacionActividadCard({ prediccion, zonaActual, delay = 100 }:
             ¿Es correcto tu estado?
           </Text>
           <Text className="text-xs text-ink-300 mt-0.5 leading-4">
-            Tu gemelo estima que estás en{" "}
+            Tu último registro indica{" "}
             <Text className="text-brand-200 font-semibold">{actividadNombre}</Text>. ¿Coincide con tu actividad actual?
           </Text>
 
+          {registrar.isError && <Text className="text-error text-xs mt-2">No se pudo guardar. Intenta otra vez.</Text>}
           {/* Botones de acción rápida */}
           {!mostrandoSelector ? (
             <View className="flex-row gap-2 mt-3.5">

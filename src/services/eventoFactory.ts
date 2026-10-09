@@ -27,3 +27,9 @@ export function nuevoEvento(part: Partial<EventoRow>): EventoRow {
     ...part,
   };
 }
+
+/** Identidad estable para lecturas acumuladas: un reintento no inventa otro evento. */
+export async function uuidDeLectura(key: string): Promise<string> {
+  const d = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, key);
+  return `${d.slice(0,8)}-${d.slice(8,12)}-4${d.slice(13,16)}-8${d.slice(17,20)}-${d.slice(20,32)}`;
+}

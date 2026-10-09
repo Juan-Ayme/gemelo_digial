@@ -31,37 +31,38 @@ export function GestorZonasCard({ zonasDetectadas = [], delay = 150 }: Props) {
   };
 
   const guardarEdicion = (zona: string, nuevoAlias: string) => {
-    guardar.mutate({ codigoZona: zona, alias: nuevoAlias });
-    setEditandoZona(null);
-    setTextoAlias("");
+    guardar.mutate({ codigoZona: zona, alias: nuevoAlias }, {
+      onSuccess: () => { setEditandoZona(null); setTextoAlias(""); },
+    });
   };
 
   return (
     <Card className="mt-4" delay={delay}>
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center gap-2.5">
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="flex-row items-start gap-2.5 flex-1">
           <View className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 items-center justify-center">
             <MapPin size={16} color={colors.accent.mint} />
           </View>
-          <View>
-            <Text className="text-lg font-semibold text-white">Zonas contextuales</Text>
+          <View className="flex-1">
+            <Text className="text-lg font-semibold text-white">Mis lugares</Text>
             <Text className="text-xs text-ink-300">
-              Etiqueta tus lugares habituales para mejorar la precisión
+              Pon un nombre a tus zonas habituales
             </Text>
           </View>
         </View>
-        <Chip label="Privado" tone="mint" />
+        <Chip className="shrink-0" label="Privado" tone="mint" />
       </View>
 
       <Text className="text-xs text-ink-400 mt-2.5 leading-5">
-        Por privacidad, el GPS solo almacena celdas aproximadas (~1 km). Aquí puedes darles un nombre amigable que el Random Forest usará para predecir mejor.
+        Por privacidad, el GPS solo almacena celdas aproximadas (~1 km). Aquí puedes darles un nombre amigable para reconocerlas al consultar tu rutina.
       </Text>
 
+      {guardar.isError && <Text className="text-error text-xs mt-3">No se pudo guardar el nombre. Intenta nuevamente.</Text>}
       <View className="mt-3.5 gap-2.5">
         {codigos.length === 0 ? (
           <View className="rounded-xl bg-white/5 border border-white/5 p-3 items-center">
             <Text className="text-xs text-ink-400 text-center">
-              Aún no se han detectado zonas hoy. Sincroniza sensores en la pestaña "Hoy".
+              Todavía no hay zonas registradas hoy. Puedes capturar un momento desde Hoy si autorizaste la zona general.
             </Text>
           </View>
         ) : (
@@ -88,6 +89,8 @@ export function GestorZonasCard({ zonasDetectadas = [], delay = 150 }: Props) {
                   </View>
 
                   <Pressable
+                    disabled={guardar.isPending}
+                    accessibilityRole="button"
                     onPress={() => (esEditando ? setEditandoZona(null) : iniciarEdicion(zona))}
                     hitSlop={8}
                     className="p-1.5 rounded-lg bg-white/10 flex-row items-center gap-1"
@@ -130,6 +133,7 @@ export function GestorZonasCard({ zonasDetectadas = [], delay = 150 }: Props) {
                         <Pressable
                           key={sug}
                           onPress={() => guardarEdicion(zona, sug)}
+                          disabled={guardar.isPending}
                           className="bg-white/5 border border-white/10 rounded-md px-2 py-1"
                         >
                           <Text className="text-[10px] text-brand-200">{sug}</Text>

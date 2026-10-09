@@ -30,12 +30,20 @@ export const asyncStoragePersister = createAsyncStoragePersister({
 
 /** Claves de query centralizadas para evitar strings sueltos. */
 export const qk = {
+  impacto: (userId: string) => ["impacto", userId] as const,
+  eventHistory: (userId: string) => ["event-history", userId] as const,
+  preferencias: (userId: string) => ["preferencias", userId] as const,
+  cambios: (userId: string) => ["cambios", userId] as const,
+  planes: (userId: string, dia: string) => ["planes", userId, dia] as const,
+  sync: (userId: string) => ["sync", userId] as const,
+  background: (userId: string) => ["background", userId] as const,
   profile:      (userId: string) => ["profile", userId] as const,
   consents:     (userId: string) => ["consents", userId] as const,
   events:       (userId: string) => ["events", userId] as const,
   prediccion:   (userId: string) => ["prediccion-rf", userId] as const,
   zonas:        (userId: string) => ["zonas", userId] as const,
   correcciones: (userId: string) => ["correcciones", userId] as const,
+  historialPrefix: (userId: string) => ["historial", userId] as const,
   historial:    (userId: string, dias: number) => ["historial", userId, dias] as const,
   metas:        (userId: string) => ["metas", userId] as const,
   logros:       (userId: string) => ["logros", userId] as const,

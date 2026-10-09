@@ -10,6 +10,7 @@ import {
   Trophy,
 } from "lucide-react-native";
 
+import { PageHeader } from "@components/ui/PageHeader";
 import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
 import { Chip } from "@components/ui/Chip";
@@ -72,7 +73,7 @@ function MetaSlider({
   const cfg = META_CONFIG[metaKey];
   const Icon = cfg.icon;
   const pct = ((value - cfg.min) / (cfg.max - cfg.min)) * 100;
-  const esBloqueado = !isPro && metaKey !== "pasos";
+  const esBloqueado = false;
 
   const handleMinus = () => {
     if (esBloqueado) {
@@ -200,7 +201,7 @@ function ProgresoRing({
           ) : (
             <Icon size={18} color={color} />
           )}
-          <Text className="text-white text-xs font-bold mt-0.5">{pct}%</Text>
+          <Text className="text-white text-xs font-bold mt-0.5">{actual === "—" ? "—" : `${pct}%`}</Text>
         </View>
       </View>
 
@@ -218,7 +219,7 @@ function ProgresoRing({
 
 export default function Metas() {
   const { data: metas } = useMetas();
-  const { data: progreso } = useProgresoMetas();
+  const { data: progreso, disponibles } = useProgresoMetas();
   const saveMetas = useSaveMetas();
   const esPro = useEsPro();
   const router = useRouter();
@@ -231,7 +232,7 @@ export default function Metas() {
   const handleRequirePro = () => {
     Alert.alert(
       "Meta exclusiva ando Pro",
-      "La calibración personalizada de minutos activos y horas de sueño está disponible en ando Pro.",
+      "El ajuste de tus objetivos personales está disponible en ando Pro.",
       [
         { text: "Cancelar", style: "cancel" },
         {
@@ -253,19 +254,14 @@ export default function Metas() {
 
   return (
     <Screen scroll>
-      <View className="gap-1">
-        <Text className="text-3xl font-bold text-white">Mis Metas</Text>
-        <Text className="text-base text-ink-300">
-          Define tus objetivos diarios de bienestar.
-        </Text>
-      </View>
+      <PageHeader title="Mis metas" subtitle="Elige tus objetivos, a tu ritmo." />
 
       <View className="flex-row gap-2 mt-4 flex-wrap items-center">
         <Chip label="Personal" tone="brand" leadingIcon={<Trophy size={12} color={colors.brandCyan} />} />
         {esPro ? (
           <Chip label="ando Pro" tone="mint" />
         ) : (
-          <ProBadge label="FREE · METAS BÁSICAS" />
+          <ProBadge label="OBJETIVOS PERSONALES" />
         )}
       </View>
 
@@ -282,7 +278,7 @@ export default function Metas() {
               color={colors.brandCyan}
               icon={Footprints}
               label="Pasos"
-              actual={progreso.pasos.actual}
+              actual={disponibles?.pasos ? progreso.pasos.actual : "—"}
               meta={progreso.pasos.meta}
               unidad="pasos"
               delay={0}
@@ -293,7 +289,7 @@ export default function Metas() {
               color={colors.accent.mint}
               icon={Timer}
               label="Min. activos"
-              actual={progreso.minutosActivos.actual}
+              actual={disponibles?.minutosActivos ? progreso.minutosActivos.actual : "—"}
               meta={progreso.minutosActivos.meta}
               unidad="min"
               delay={100}
@@ -304,7 +300,7 @@ export default function Metas() {
               color={colors.accent.violet}
               icon={Moon}
               label="Sueño"
-              actual={parseFloat(progreso.horasSueno.actual.toFixed(1))}
+              actual={disponibles?.horasSueno ? parseFloat(progreso.horasSueno.actual.toFixed(1)) : "—"}
               meta={progreso.horasSueno.meta}
               unidad="h"
               delay={200}
@@ -316,16 +312,18 @@ export default function Metas() {
             <MotiView
               from={{ opacity: 0, translateY: 4 }}
               animate={{ opacity: 1, translateY: 0 }}
-              className="mt-4 bg-accent-mint/10 border border-accent-mint/20 rounded-xl p-3"
+              className="mt-4 bg-accent-mint/10 border border-accent-mint/20 rounded-xl p-3 flex-row items-center justify-center gap-2"
             >
-              <Text className="text-accent-mint font-semibold text-sm text-center">
-                🎉 ¡Metas del día completadas! Excelente trabajo.
+              <Trophy size={16} color={colors.accent.mint} />
+              <Text className="text-accent-mint font-semibold text-sm">
+                ¡Metas del día completadas! Excelente trabajo.
               </Text>
             </MotiView>
           )}
         </Card>
       )}
 
+      {saveMetas.isError && <Text className="text-error text-sm mt-3">No se pudieron guardar las metas. Intenta nuevamente.</Text>}
       {/* ── Editor de metas ── */}
       <Card className="mt-4">
         <View className="flex-row items-center justify-between mb-4">
@@ -361,7 +359,7 @@ export default function Metas() {
           ))}
         </View>
 
-        {!esPro && (
+        {false && (
           <View className="mt-4">
             <ProGate
               mode="banner"
@@ -395,8 +393,8 @@ export default function Metas() {
       </Card>
 
       <Text className="text-xs text-ink-400 text-center mt-4 leading-5">
-        Los objetivos siguen recomendaciones de la OMS y la American Heart Association.
-        No constituyen un diagnóstico médico.
+        Estos objetivos son valores iniciales que puedes ajustar a tu situación.
+        No sustituyen orientación profesional ni evalúan tu salud.
       </Text>
     </Screen>
   );

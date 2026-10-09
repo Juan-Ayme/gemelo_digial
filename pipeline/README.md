@@ -120,6 +120,24 @@ Ideal para exponer con datos reales.
 
 ## Después de correrlo
 
+### Ejecuciones repetidas y publicación (corrección 2026-10-09)
+
+El pipeline real guarda las ventanas mediante `ON CONFLICT
+(usuario_id, ventana_inicio, ventana_fin) DO UPDATE`. Así se pueden recalcular
+el historial y las etiquetas sin duplicar las ventanas existentes. Los duplicados
+dentro del lote se reducen a una fila por clave con desempate estable.
+
+Las características, el registro del modelo y sus predicciones se escriben en
+una misma transacción JDBC: si falla una escritura, se revierte toda esa
+publicación. No se borran tablas ni se elimina la restricción de unicidad.
+El bootstrap conserva su flujo independiente; el control de concurrencia del
+workflow evita publicaciones simultáneas entre ejecuciones de GitHub Actions.
+
+Pruebas locales sin Supabase: `python -m unittest discover -s pipeline -p
+"test_*.py"`. Estas pruebas verifican consultas parametrizadas, lotes, cierre de
+recursos y commit/rollback con dobles JDBC; la integración Spark/PostgreSQL debe
+confirmarse ejecutando el workflow actualizado.
+
 Cuando el pipeline escriba `predicciones`, el siguiente paso es que la app **lea
 esa tabla** y muestre la predicción real del Random Forest en lugar de la
 heurística. Dilo y lo cableo en la app.

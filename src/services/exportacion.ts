@@ -4,13 +4,18 @@
  *
  * Genera un archivo de exportación completo con TODOS los datos del usuario:
  *  - Perfil y consentimientos (con timestamps)
- *  - Eventos crudos (últimos 90 días)
+ *  - Eventos crudos disponibles, con paginación
  *  - Correcciones de actividad
  *  - Predicciones
  *
- * Cumple Ley N° 29733 (Perú) y principios GDPR sobre portabilidad de datos.
+ * Archivo de acceso a los registros disponibles; no certifica cumplimiento normativo.
  */
 
+import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { eventosUnicos } from "@services/metricas";
+import { fetchPreferencias } from "@services/preferencias";
+import { fetchMetas } from "@services/metas";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { isRemote } from "@services/mode";
@@ -29,10 +34,14 @@ export type ExportacionCompleta = {
     userId: string;
   };
   perfil: Record<string, unknown>;
+  registrosLocales?: Record<string, unknown>;
   consentimientos: unknown[];
   eventos: unknown[];
   correcciones: unknown[];
   predicciones: unknown[];
+  preferencias?: unknown;
+  metas?: unknown;
+  planPersonal?: Record<string, unknown>;
   resumen: {
     totalEventos: number;
     totalConsentimientos: number;
@@ -55,72 +64,49 @@ async function fetchPerfilCompleto(userId: string): Promise<Record<string, unkno
   if (!isRemote() || !supabase) {
     return { usuario_id: userId, alias: "Usuario (demo)", modo: "local" };
   }
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from(TABLES.perfiles)
     .select("*")
     .eq(OWNER_COL, userId)
     .maybeSingle();
+  if (error) throw error;
   return (data as Record<string, unknown>) ?? {};
 }
 
+async function leerTabla(userId: string, tabla: string): Promise<unknown[]> {
+  const rows: unknown[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await supabase!.from(tabla).select("*").eq(OWNER_COL, userId).order(tabla === TABLES.perfiles ? OWNER_COL : "id").range(offset, offset + 999);
+    if (error) throw error;
+    rows.push(...(data ?? [])); if ((data?.length ?? 0) < 1000) break;
+  } return rows;
+}
 async function fetchConsentimientosCompletos(userId: string): Promise<unknown[]> {
-  if (!isRemote() || !supabase) {
-    const local = await lget<Record<string, unknown>>(`consents:${userId}`, {});
-    return Object.entries(local).map(([categoria, otorgado]) => ({
-      categoria,
-      otorgado,
-      fuente: "local",
-    }));
-  }
-  const { data } = await supabase
-    .from(TABLES.consentimientos)
-    .select("*")
-    .eq(OWNER_COL, userId)
-    .order("creado_en", { ascending: false });
-  return data ?? [];
+  if (isRemote()) return leerTabla(userId, TABLES.consentimientos);
+  const local = await lget<Record<string, unknown>>(`consents:${userId}`, {});
+  return Object.entries(local).map(([categoria, otorgado]) => ({ categoria, otorgado, fuente: "local" }));
 }
-
 async function fetchEventosCompletos(userId: string): Promise<EventoRow[]> {
-  // Últimos 90 días
-  const desde = new Date();
-  desde.setDate(desde.getDate() - 90);
-
-  if (!isRemote() || !supabase) {
-    const local = await lget<EventoRow[]>(`events:${userId}`, []);
-    return local;
-  }
-  const { data, error } = await supabase
-    .from(TABLES.eventosCrudos)
-    .select("*")
-    .eq(OWNER_COL, userId)
-    .gte("inicio_en", desde.toISOString())
-    .order("inicio_en", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as EventoRow[];
+  const local = [...await lget<EventoRow[]>(`events:${userId}`, []), ...await lget<EventoRow[]>(`pending:${userId}`, [])];
+  const remote = isRemote() ? await leerTabla(userId, TABLES.eventosCrudos) as EventoRow[] : [];
+  return eventosUnicos([...local, ...remote]).sort((a, b) => a.inicio_en.localeCompare(b.inicio_en));
 }
-
 async function fetchCorreccionesCompletas(userId: string): Promise<unknown[]> {
-  if (!isRemote() || !supabase) {
-    const local = await lget<unknown[]>(`correcciones:${userId}`, []);
-    return local;
-  }
-  const { data } = await supabase
-    .from(TABLES.correccionesActividad)
-    .select("*")
-    .eq(OWNER_COL, userId)
-    .order("created_at", { ascending: false });
-  return data ?? [];
+  const local = await lget<unknown[]>(`correcciones:${userId}`, []);
+  return isRemote() ? [...local, ...await leerTabla(userId, TABLES.correccionesActividad)] : local;
 }
-
 async function fetchPrediccionesCompletas(userId: string): Promise<unknown[]> {
-  if (!isRemote() || !supabase) return [];
-  const { data } = await supabase
-    .from(TABLES.predicciones)
-    .select("*")
-    .eq(OWNER_COL, userId)
-    .order("generada_en", { ascending: false })
-    .limit(100);
-  return data ?? [];
+  return isRemote() ? leerTabla(userId, TABLES.predicciones) : [];
+}
+async function exportarRegistrosLocales(id: string) {
+  const keys = (await AsyncStorage.getAllKeys()).filter(k => (k.startsWith("ando:local:") && (k.endsWith(`:${id}`) || k.startsWith(`ando:local:planes:${id}:`))) || [`ando-metas-${id}`, `ando-logros-${id}`, `ando-suscripcion-${id}`, `ando-notif-historial:${id}`].includes(k));
+  const values = await AsyncStorage.multiGet(keys);
+  return Object.fromEntries(values.map(([key, value]) => [key, value ? JSON.parse(value) : null]));
+}
+async function exportarPlanPersonal(id: string) {
+  const keys = (await AsyncStorage.getAllKeys()).filter(k => k === `ando:local:cambio:${id}` || k === `ando:local:cambios:archivo:${id}` || k.startsWith(`ando:local:planes:${id}:`));
+  const values = await AsyncStorage.multiGet(keys);
+  return Object.fromEntries(values.map(([key, value]) => [key.replace("ando:local:", ""), value ? JSON.parse(value) : null]));
 }
 
 // ─── Exportación ──────────────────────────────────────────────────────────────
@@ -162,6 +148,10 @@ export async function generarExportacionCompleta(
       userId,
     },
     perfil,
+    registrosLocales: await exportarRegistrosLocales(userId),
+    preferencias: await fetchPreferencias(userId),
+    metas: await fetchMetas(userId),
+    planPersonal: await exportarPlanPersonal(userId),
     consentimientos,
     eventos,
     correcciones,
@@ -189,6 +179,11 @@ export async function exportarYCompartir(
     const json = JSON.stringify(exportacion, null, 2);
     const fecha = new Date().toISOString().split("T")[0];
     const nombreArchivo = `ando-datos-${fecha}.json`;
+    if (Platform.OS === "web") {
+      const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+      const link = document.createElement("a"); link.href = url; link.download = nombreArchivo; document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000); onProgress?.({ paso: "Descarga preparada", progresoPct: 100 }); return true;
+    }
     const rutaArchivo = `${FileSystem.documentDirectory}${nombreArchivo}`;
 
     await FileSystem.writeAsStringAsync(rutaArchivo, json, {
@@ -209,78 +204,27 @@ export async function exportarYCompartir(
     return true;
   } catch (e) {
     console.warn("Error al exportar datos:", e);
-    return false;
+    throw e;
   }
 }
 
-// ─── Eliminación real de cuenta ───────────────────────────────────────────────
-
-/**
- * Elimina todos los datos del usuario de Supabase en cascada.
- * Usa el cliente anon (respeta RLS): elimina solo los datos del titular.
- *
- * Orden de borrado (respeta FK constraints):
- *  correcciones → eventos → consentimientos → predicciones → perfil
- *  La cuenta de auth la cierra signOut() del authStore.
- */
+/** Borrado remoto solo mediante una función autenticada; un signOut no elimina Auth. */
 export async function eliminarTodosLosDatos(userId: string): Promise<void> {
-  if (!isRemote() || !supabase) {
-    // Modo demo: limpiar AsyncStorage
-    const claves = [
-      `events:${userId}`,
-      `consents:${userId}`,
-      `correcciones:${userId}`,
-      `bg:userId`,
-      `bg:consents`,
-      `ando-metas-${userId}`,
-      `ando-logros-${userId}`,
-      `ando-suscripcion-${userId}`,
-      `ando-notif-historial:${userId}`,
-    ];
-    const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
-    await AsyncStorage.multiRemove(claves);
-    return;
+  let deletedRemote = false;
+  if (isRemote() && supabase) {
+    const { data, error } = await supabase.functions.invoke("delete-account", { body: {} });
+    if (error || data?.deleted !== true) throw new Error("No se confirmó la eliminación. La función delete-account debe estar desplegada y configurada.");
+    deletedRemote = true;
   }
-
-  // 1. Correcciones de actividad
-  await supabase
-    .from(TABLES.correccionesActividad)
-    .delete()
-    .eq(OWNER_COL, userId);
-
-  // 2. Eventos crudos
-  await supabase
-    .from(TABLES.eventosCrudos)
-    .delete()
-    .eq(OWNER_COL, userId);
-
-  // 3. Consentimientos
-  await supabase
-    .from(TABLES.consentimientos)
-    .delete()
-    .eq(OWNER_COL, userId);
-
-  // 4. Predicciones
-  await supabase
-    .from(TABLES.predicciones)
-    .delete()
-    .eq(OWNER_COL, userId);
-
-  // 5. Perfil (última porque otras tablas lo referencian)
-  await supabase
-    .from(TABLES.perfiles)
-    .delete()
-    .eq(OWNER_COL, userId);
-
-  // 6. Limpiar caché local
-  const claves = [
-    `ando-metas-${userId}`,
-    `ando-logros-${userId}`,
-    `ando-suscripcion-${userId}`,
-    `ando-notif-historial:${userId}`,
-    `bg:userId`,
-    `bg:consents`,
-  ];
-  const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
-  await AsyncStorage.multiRemove(claves);
+  try {
+  await import("@services/backgroundCapture").then(m => m.cancelarTareaSegundoPlano());
+  await import("@services/notificaciones").then(m => m.cancelarTodasLasNotificaciones());
+  const keys = await AsyncStorage.getAllKeys();
+  const owned = keys.filter(k => (k.startsWith("ando:local:") && (k.endsWith(`:${userId}`) || k.startsWith(`ando:local:planes:${userId}:`))) ||
+    [`ando-metas-${userId}`, `ando-logros-${userId}`, `ando-suscripcion-${userId}`, `ando-notif-historial:${userId}`, `ando-recordatorio:${userId}`].includes(k));
+  await AsyncStorage.multiRemove([...owned, "ando-query-cache"]);
+  } catch (error) {
+    if (deletedRemote) throw new Error("La cuenta se eliminó en el servidor, pero la limpieza local falló. Cierra la sesión y elimina los datos de esta app en el dispositivo.");
+    throw error;
+  }
 }

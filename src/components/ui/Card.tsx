@@ -15,6 +15,8 @@ type Props = ViewProps & {
 /**
  * Tarjeta de vidrio esmerilado sobre el cielo del `Screen`. La transparencia
  * deja ver el degradado y las partículas: es lo que da sensación de profundidad.
+ * La vista animada es también el contenedor de layout. Una envoltura adicional
+ * dejaría flex-1 en el hijo y colapsaría su altura dentro de las filas de métricas.
  */
 export function Card({
   children,
@@ -29,21 +31,20 @@ export function Card({
     ? "bg-white/[0.10] border border-white/20"
     : "bg-white/[0.06] border border-white/10";
 
-  const content = (
-    <View className={cn("rounded-3xl p-5", base, className)} {...rest}>
-      {children}
-    </View>
-  );
-
-  if (!animated) return content;
+  const cardClassName = cn("rounded-3xl p-5", base, className);
+  if (!animated) {
+    return <View className={cardClassName} {...rest}>{children}</View>;
+  }
 
   return (
     <MotiView
-      from={{ opacity: 0, translateY: 14, scale: 0.98 }}
-      animate={{ opacity: 1, translateY: 0, scale: 1 }}
-      transition={{ type: "timing", duration: 420, delay }}
+      className={cardClassName}
+      {...rest}
+      from={{ opacity: 0, translateY: 8 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: "timing", duration: 280, delay }}
     >
-      {content}
+      {children}
     </MotiView>
   );
 }

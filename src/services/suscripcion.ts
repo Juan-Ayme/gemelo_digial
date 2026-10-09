@@ -12,6 +12,7 @@
  * donde la institución paga la licencia y los usuarios reciben beneficios.
  */
 
+import { useAuthStore } from "@stores/authStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type PlanTier = "free" | "pro" | "investigador";
@@ -36,17 +37,20 @@ export async function fetchSuscripcion(userId: string): Promise<Suscripcion> {
   try {
     const raw = await AsyncStorage.getItem(KEY(userId));
     if (!raw) return DEFAULT_SUB;
-    return { ...DEFAULT_SUB, ...(JSON.parse(raw) as Partial<Suscripcion>) };
+    const sub = { ...DEFAULT_SUB, ...(JSON.parse(raw) as Partial<Suscripcion>) };
+    if (!sub.expiraEn || !Number.isFinite(Date.parse(sub.expiraEn)) || Date.parse(sub.expiraEn) <= Date.now() || (!__DEV__ && !useAuthStore.getState().demoMode)) return { ...sub, tier: "free" };
+    return sub;
   } catch {
     return DEFAULT_SUB;
   }
 }
 
 export async function activarPro(userId: string): Promise<void> {
+  if (!__DEV__ && !useAuthStore.getState().demoMode) throw new Error("El plan comercial aún no está disponible.");
   const sub = await fetchSuscripcion(userId);
   const ahora = new Date();
   const expira = new Date(ahora);
-  expira.setFullYear(expira.getFullYear() + 1);
+  expira.setDate(expira.getDate() + 7);
   await AsyncStorage.setItem(
     KEY(userId),
     JSON.stringify({
@@ -76,40 +80,43 @@ export const PLANES = {
     precio: "Gratis",
     color: "#64748b",
     beneficios: [
-      "Historial de hoy",
-      "Predicción básica (Random Forest)",
+      "Historial de siete días",
+      "Gemelo personalizable y resumen semanal",
+      "Mi pequeño cambio y plan para mañana",
+      "Exportación JSON",
+      "Estimaciones por reglas generales",
       "Consentimientos granulares",
       "Modo demo sin registro",
     ],
-    limitaciones: ["Historial solo 1 día", "Sin alertas combinadas avanzadas", "Sin exportación de datos"],
+    limitaciones: ["El historial ampliado está en prueba"] ,
   },
   pro: {
     nombre: "ando Pro",
-    precio: "S/ 9.90 / mes",
-    precioAnual: "S/ 99 / año",
+    precio: "S/ 9.90 / mes · propuesto",
+    precioAnual: "S/ 99 / año · propuesto",
     color: "#10b981",
     beneficios: [
       "Historial de 30 días",
       "Insights semanales con tendencias",
       "Metas personalizadas",
-      "Alertas combinadas avanzadas",
-      "Exportación de datos (PDF / CSV)",
-      "Gemelo con RF en la nube (más preciso)",
+      "Seguimiento ampliado en pruebas",
+      "Exportación de datos (JSON)",
+      "Acceso al historial ampliado",
       "Sistema de logros y rachas",
     ],
     limitaciones: [],
   },
   investigador: {
-    nombre: "ando Investigación",
-    precio: "Gratis (participantes)",
+    nombre: "ando Colaborador",
+    precio: "Activo para colaboradores",
     color: "#8b5cf6",
     beneficios: [
       "Todo de ando Pro",
-      "Créditos por datos aportados",
+      "Programa colaborador por validar",
       "Acceso anticipado a nuevas funciones",
-      "Certificado de participación académica",
+      "Insignia de colaborador pionero",
     ],
-    limitaciones: ["Requiere consentimiento de investigación"],
+    limitaciones: ["Requiere consentimiento de mejora continua"],
   },
 } as const;
 

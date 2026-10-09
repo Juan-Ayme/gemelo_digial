@@ -112,7 +112,7 @@ export default function Register() {
                 accessibilityRole="button"
                 accessibilityLabel="Volver"
               >
-                <ArrowLeft size={18} color="#dee1fb" />
+                <ArrowLeft size={18} color={colors.white} />
               </Pressable>
               <Brand size="sm" />
               <View className="w-10" />
@@ -124,11 +124,11 @@ export default function Register() {
               transition={{ type: "timing", duration: 400 }}
             >
               <View className="flex-row items-center gap-2 mb-3">
-                <View className="w-8 h-8 rounded-full bg-primary-container/20 items-center justify-center">
+                <View className="w-8 h-8 rounded-full bg-brand-500/20 items-center justify-center">
                   <Sparkles size={16} color={colors.brandCyan} />
                 </View>
                 <Text
-                  className="text-primary-container"
+                  className="text-brand-300"
                   style={{ fontFamily: "Inter_600SemiBold", fontSize: 12, letterSpacing: 1.4 }}
                 >
                   CREA TU GEMELO
@@ -182,7 +182,7 @@ export default function Register() {
                 render={({ field: { value, onChange, onBlur } }) => (
                   <TextInput
                     label="Correo"
-                    placeholder="tu.correo@lapontificia.edu.pe"
+                    placeholder="tu@correo.com"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoComplete="email"
@@ -262,7 +262,7 @@ export default function Register() {
                       <View
                         className={`w-6 h-6 rounded-lg items-center justify-center border ${
                           value
-                            ? "bg-primary-container border-primary-container"
+                            ? "bg-brand-500 border-brand-500"
                             : "border-outline-variant/50 bg-surface-container/40"
                         }`}
                       >
@@ -303,7 +303,7 @@ export default function Register() {
                   transition={{ type: "timing", duration: 200 }}
                   className="flex-row items-start gap-2 rounded-2xl border border-error/40 bg-error-container/30 p-3"
                 >
-                  <TriangleAlert size={16} color="#ffb4ab" />
+                  <TriangleAlert size={16} color={colors.accent.coral} />
                   <Text
                     className="flex-1 text-error"
                     style={{ fontFamily: "Inter_500Medium", fontSize: 13 }}
@@ -318,11 +318,11 @@ export default function Register() {
                   from={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: "timing", duration: 200 }}
-                  className="flex-row items-start gap-2 rounded-2xl border border-tertiary/40 bg-tertiary-container/20 p-3"
+                  className="flex-row items-start gap-2 rounded-2xl border border-brand-500/40 bg-brand-500/20 p-3"
                 >
-                  <CircleCheck size={16} color="#39efa2" />
+                  <CircleCheck size={16} color={colors.accent.mint} />
                   <Text
-                    className="flex-1 text-tertiary"
+                    className="flex-1 text-emerald-300"
                     style={{ fontFamily: "Inter_500Medium", fontSize: 13 }}
                   >
                     {success}
@@ -334,8 +334,8 @@ export default function Register() {
                 label="Crear gemelo digital"
                 loading={loading}
                 trailingIcon={<ArrowRight size={18} color={colors.onPrimary} />}
-                className="bg-primary-container active:bg-primary-fixed mt-1"
-                labelClassName="text-on-primary"
+                variant="primary"
+                className="mt-1"
                 onPress={onSubmit}
               />
 
@@ -360,7 +360,7 @@ export default function Register() {
                 ¿Ya tienes cuenta?{" "}
                 <Link
                   href="/(auth)/login"
-                  className="text-primary-container"
+                  className="text-secondary"
                   style={{ fontFamily: "Inter_600SemiBold" }}
                 >
                   Iniciar sesión
@@ -383,7 +383,7 @@ function calcularFortaleza(password: string): 0 | 1 | 2 | 3 | 4 {
 }
 
 function BarraFortaleza({ fuerza }: { fuerza: 0 | 1 | 2 | 3 | 4 }) {
-  const colores = ["#5b6382", "#ffb4ab", "#f59e0b", "#39E7FF", "#39efa2"];
+  const colores = ["#5b6382", "#fb7185", "#f59e0b", "#2dd4bf", "#10b981"];
   const etiquetas = ["Muy débil", "Débil", "Aceptable", "Buena", "Excelente"];
   return (
     <View className="flex-row items-center gap-3">

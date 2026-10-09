@@ -36,6 +36,9 @@ export function useRegistrarCorreccion() {
     onSuccess: () => {
       if (userId) {
         qc.invalidateQueries({ queryKey: qk.events(userId) });
+        qc.invalidateQueries({ queryKey: qk.eventHistory(userId) });
+        qc.invalidateQueries({ queryKey: qk.historialPrefix(userId) });
+        qc.invalidateQueries({ queryKey: qk.sync(userId) });
         qc.invalidateQueries({ queryKey: qk.correcciones(userId) });
       }
     },

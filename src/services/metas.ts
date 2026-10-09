@@ -33,6 +33,7 @@ export async function fetchMetas(userId: string): Promise<MetasConfig> {
 }
 
 export async function saveMetas(userId: string, metas: MetasConfig): Promise<void> {
+  if (![metas.pasos, metas.minutosActivos, metas.horasSueno].every(n => Number.isFinite(n) && n > 0)) throw new Error("Las metas deben ser mayores que cero.");
   await AsyncStorage.setItem(KEY(userId), JSON.stringify(metas));
 }
 
@@ -44,9 +45,9 @@ export type ProgresoMetas = {
 
 export function calcularProgreso(
   metas: MetasConfig,
-  snapshot: { pasosHoy: number; minutosActivos: number; minutosDescanso: number },
+  snapshot: { pasosHoy: number; minutosActivos: number; minutosDescanso: number; minutosSueno?: number },
 ): ProgresoMetas {
-  const horasSuenoActual = snapshot.minutosDescanso / 60;
+  const horasSuenoActual = (snapshot.minutosSueno ?? 0) / 60;
   return {
     pasos: {
       actual: snapshot.pasosHoy,

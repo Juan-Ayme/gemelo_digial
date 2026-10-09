@@ -12,6 +12,7 @@ import { qk } from "@lib/queryClient";
 import { useAuthStore } from "@stores/authStore";
 import { fetchEventsToday } from "@services/gemelo";
 import { generarAlertas } from "@services/alertas";
+import { useMetas } from "@hooks/useMetas";
 import { useGemelo } from "@hooks/useGemelo";
 import type { EventoRow } from "@services/types";
 
@@ -46,6 +47,7 @@ function minSedentariosConsecutivos(eventos: EventoRow[]): number {
 export function useAlertas() {
   const userId = useAuthStore((s) => s.user?.id ?? null);
   const { data: gemelo } = useGemelo();
+  const { data: metas } = useMetas();
 
   const eventosQuery = useQuery({
     queryKey: userId ? qk.events(userId) : ["events", "anon"],
@@ -58,8 +60,8 @@ export function useAlertas() {
     const eventos = eventosQuery.data;
     const bpm = bpmDeEventos(eventos);
     const minSed = minSedentariosConsecutivos(eventos);
-    return generarAlertas(gemelo, bpm, minSed);
-  }, [gemelo, eventosQuery.data]);
+    return generarAlertas(gemelo, bpm, minSed, metas);
+  }, [gemelo, eventosQuery.data, metas]);
 
   return {
     alertas,

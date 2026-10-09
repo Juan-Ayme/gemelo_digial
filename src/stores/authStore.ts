@@ -35,10 +35,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true });
     const { data } = await supabase.auth.getSession();
     supabase.auth.onAuthStateChange((event, session) => {
-      set({ session, user: session?.user ?? null });
+      set({ session, user: session?.user ?? null, demoMode: false });
       // Al cerrar sesión (o expirar el token) descartamos datos cacheados
       // para que no se filtren entre cuentas.
-      if (event === "SIGNED_OUT") queryClient.clear();
+      if (event === "SIGNED_OUT") { queryClient.clear(); import("@services/backgroundCapture").then(m => m.cancelarTareaSegundoPlano()).catch(() => {}); }
     });
     set({
       session: data.session,
@@ -75,7 +75,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   async signOut() {
-    if (supabase) await supabase.auth.signOut();
+    const id = get().user?.id;
+    if (id) await import("@services/planPersonal").then(m => m.cancelarRecordatoriosPlanes(id));
+    await import("@services/backgroundCapture").then(m => m.cancelarTareaSegundoPlano());
+    await import("@services/notificaciones").then(m => m.cancelarTodasLasNotificaciones());
+    if (supabase && !get().demoMode) { const { error } = await supabase.auth.signOut(); if (error) throw error; }
     set({ session: null, user: null, demoMode: false });
     queryClient.clear();
     // Cancela la tarea de segundo plano al cerrar sesión
@@ -96,10 +100,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user: demoUser,
       initialized: true,
     });
-    // Persiste el userId de demo para que la tarea BG lo encuentre
-    import("@services/backgroundCapture")
-      .then(({ registrarTareaSegundoPlano }) => registrarTareaSegundoPlano())
-      .catch(() => {});
+    queryClient.clear();
+    import("@services/backgroundCapture").then(m => m.cancelarTareaSegundoPlano()).catch(() => {});
   },
 }));
 

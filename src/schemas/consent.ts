@@ -95,10 +95,10 @@ export const CATALOGO_CONSENTIMIENTOS: {
   },
   {
     categoria: "investigacion",
-    titulo: "Uso académico",
+    titulo: "Mejora continua del modelo",
     finalidad:
-      "Datos seudonimizados para evaluar el prototipo del gemelo digital.",
-    ejemplo: "Sin datos identificables, revocable en cualquier momento.",
+      "Métricas anonimizadas para calibrar y optimizar la precisión de las predicciones.",
+    ejemplo: "Datos disociados sin identidad personal, revocable en cualquier momento.",
     requerido: false,
   },
 ];

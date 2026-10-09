@@ -1,17 +1,29 @@
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { MotiView, AnimatePresence } from "moti";
-import { Check, MapPin, Sparkles, X, ChevronRight, Edit3 } from "lucide-react-native";
+import {
+  Briefcase,
+  Check,
+  ChevronRight,
+  Coffee,
+  Dumbbell,
+  Edit3,
+  GraduationCap,
+  Home,
+  MapPin,
+  Sparkles,
+  X,
+} from "lucide-react-native";
 import { Card } from "@components/ui/Card";
 import { useGuardarAliasZona } from "@hooks/useZonas";
 import { colors } from "@theme/colors";
 
 const SUGERENCIAS = [
-  { label: "Casa", emoji: "🏠" },
-  { label: "Trabajo", emoji: "💼" },
-  { label: "Universidad", emoji: "🎓" },
-  { label: "Gimnasio", emoji: "🏋️" },
-  { label: "Cafetería", emoji: "☕" },
+  { label: "Casa", icon: Home },
+  { label: "Trabajo", icon: Briefcase },
+  { label: "Estudio", icon: GraduationCap },
+  { label: "Gimnasio", icon: Dumbbell },
+  { label: "Cafetería", icon: Coffee },
 ];
 
 type Props = {
@@ -109,19 +121,22 @@ export function NuevaZonaCard({ codigoZona, onDescartar }: Props) {
               {!personalizado ? (
                 <View className="mt-3.5">
                   <View className="flex-row flex-wrap gap-1.5">
-                    {SUGERENCIAS.map((sug) => (
-                      <Pressable
-                        key={sug.label}
-                        onPress={() => handleSeleccionar(sug.label)}
-                        disabled={guardar.isPending}
-                        className="flex-row items-center gap-1 bg-white/8 hover:bg-white/15 border border-white/12 px-3 py-1.5 rounded-full active:opacity-75"
-                      >
-                        <Text className="text-xs">{sug.emoji}</Text>
-                        <Text className="text-xs text-white/90 font-medium">
-                          {sug.label}
-                        </Text>
-                      </Pressable>
-                    ))}
+                    {SUGERENCIAS.map((sug) => {
+                      const SIcon = sug.icon;
+                      return (
+                        <Pressable
+                          key={sug.label}
+                          onPress={() => handleSeleccionar(sug.label)}
+                          disabled={guardar.isPending}
+                          className="flex-row items-center gap-1.5 bg-white/8 hover:bg-white/15 border border-white/12 px-3 py-1.5 rounded-full active:opacity-75"
+                        >
+                          <SIcon size={12} color={colors.brandCyan} />
+                          <Text className="text-xs text-white/90 font-medium">
+                            {sug.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
 
                     <Pressable
                       onPress={() => setPersonalizado(true)}
@@ -144,16 +159,16 @@ export function NuevaZonaCard({ codigoZona, onDescartar }: Props) {
                       placeholder="Ej. Casa de mis padres, Estudio..."
                       placeholderTextColor="#64748b"
                       autoFocus
-                      className="flex-1 bg-surface-900 border border-white/20 rounded-xl px-3 py-2 text-xs text-white"
+                      className="flex-1 bg-surface-container border border-outline-variant/40 rounded-xl px-3 py-2 text-xs text-white"
                       onSubmitEditing={handleGuardarCustom}
                     />
                     <Pressable
                       onPress={handleGuardarCustom}
                       disabled={!textoCustom.trim() || guardar.isPending}
-                      className="bg-emerald-500 px-3.5 py-2.5 rounded-xl flex-row items-center gap-1 active:opacity-80 disabled:opacity-40"
+                      className="bg-brand-500 px-3.5 py-2.5 rounded-xl flex-row items-center gap-1 active:opacity-80 disabled:opacity-40"
                     >
-                      <Check size={14} color="#0e1224" />
-                      <Text className="text-xs font-bold text-surface-900">
+                      <Check size={14} color="#022c22" />
+                      <Text className="text-xs font-bold text-ink-950">
                         Guardar
                       </Text>
                     </Pressable>

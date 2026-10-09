@@ -1,24 +1,4 @@
-/**
- * ando · Gemelo Digital — Inferencia On-Device de Random Forest
- * ==============================================================
- *
- * Implementa un ensamble Random Forest de árboles de decisión ejecutable
- * en JavaScript/TypeScript directamente en el dispositivo móvil.
- *
- * Sigue la misma ingeniería de características definida en `pipeline/common.py`:
- *   - hora_seno / hora_coseno (representación circadiana continua)
- *   - dia_semana (0..6)
- *   - actividad_actual (inercia conductual)
- *   - actividad_anterior (transición)
- *   - pasos_ventana (cadencia)
- *   - zona_general (contexto espacial)
- *
- * Ventajas:
- *   - Inferencia instantánea tras cada captura de sensores (< 2 ms).
- *   - No depende de que una máquina Spark esté encendida en la nube.
- *   - Explicabilidad real (XAI): calcula los pesos y ramas activas del bosque.
- */
-
+/** Respaldo por reglas generales; no es un modelo entrenado ni una probabilidad calibrada. */
 import { ACTIVIDAD_LABELS, type ActividadPredicha, type Prediccion } from "@services/types";
 
 export type FeatureVector = {
@@ -65,7 +45,7 @@ export function extraerFeatures(params: {
   };
 }
 
-// ─── Ensamble de Árboles de Decisión (Random Forest) ──────────────────────────
+// ─── Conjunto de reglas generales ──────────────────────────
 
 type DecisionTree = (f: FeatureVector) => {
   pred: ActividadPredicha;
@@ -203,9 +183,9 @@ const BOSQUE_ARBOLES: DecisionTree[] = [
 ];
 
 /**
- * Ejecuta la inferencia del ensamble Random Forest en tiempo real.
+ * Evalúa reglas escritas a mano; el porcentaje de votos no es precisión del modelo.
  */
-export function predecirProximaActividadRF(
+export function predecirPorReglas(
   features: FeatureVector,
 ): Prediccion & { importancias: TreeImportance } {
   const votos: Record<string, number> = {};
@@ -230,7 +210,7 @@ export function predecirProximaActividadRF(
   )[0]?.[0] ?? "permanencia") as ActividadPredicha;
 
   const countGanador = votos[ganador] ?? 1;
-  const probabilidad = Math.min(0.96, Math.max(0.55, countGanador / totalArboles));
+  const probabilidad = countGanador / totalArboles;
 
   // Normalizar importancias a porcentajes enteros
   const sumPesos = Object.values(pesoFeatures).reduce((a, b) => a + b, 0) || 1;
@@ -241,33 +221,7 @@ export function predecirProximaActividadRF(
     zona_general: Math.round((pesoFeatures.zona_general / sumPesos) * 100),
   };
 
-  function generarExplicacionNatural(
-    act: ActividadPredicha,
-  ): string {
-    const hora = new Date().getHours();
-    const momento = hora < 12 ? "la mañana" : hora < 19 ? "la tarde" : "la noche";
-
-    switch (act) {
-      case "descanso":
-        return `Por el horario de ${momento} y tu bajo nivel de movimiento, coincide con tu momento habitual de descanso.`;
-      case "permanencia":
-        return `Detectamos poco desplazamiento, típico de cuando estás en tu lugar habitual o en concentración.`;
-      case "desplazamiento":
-        return `Detectamos ritmo de pasos en curso, coincidente con tus traslados habituales en este horario.`;
-      case "trabajo":
-        return `Por la hora del día y la continuidad de tus actividades, coincide con tu horario laboral.`;
-      case "estudio":
-        return `Tu entorno y patrón horario son acordes a tus sesiones habituales de estudio.`;
-      case "actividad_fisica":
-        return `El ritmo de pasos e intensidad registrados coinciden con tu tiempo de actividad física.`;
-      case "ocio":
-        return `Es un momento propicio para desconectar y tomarte una pausa agradable.`;
-      default:
-        return `Coincide con tu patrón habitual para este momento del día.`;
-    }
-  }
-
-  const explicacion = generarExplicacionNatural(ganador);
+  const explicacion = `Estimación orientativa por reglas generales: hora ${Math.floor(features.horaDecimal)} y movimiento registrado. No representa todavía tu patrón personal.`;
 
   return {
     actividad: ganador,
@@ -277,5 +231,6 @@ export function predecirProximaActividadRF(
     explicacion,
     generadaEn: new Date().toISOString(),
     importancias,
+    estimacionLocal: true,
   };
 }

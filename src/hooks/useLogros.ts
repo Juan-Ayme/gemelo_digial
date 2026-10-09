@@ -9,6 +9,7 @@ import {
 } from "@services/logros";
 import { useHistorial } from "@hooks/useHistorial";
 import { useConsents } from "@hooks/useConsents";
+import { useMetas } from "@hooks/useMetas";
 import { useGemelo } from "@hooks/useGemelo";
 
 export function useLogros() {
@@ -35,6 +36,7 @@ export function useDesbloquearLogro() {
 /** Evalúa y desbloquea automáticamente los logros ganados. */
 export function useEvaluarLogros() {
   const { data: historial } = useHistorial(7);
+  const { data: metas } = useMetas();
   const { data: consents } = useConsents();
   const { data: gemelo } = useGemelo();
   const desbloquear = useDesbloquearLogro();
@@ -45,6 +47,7 @@ export function useEvaluarLogros() {
       historial,
       gemelo?.totalEventos ?? 0,
       consents?.investigacion ?? false,
+      metas?.pasos,
     );
     for (const id of nuevos) {
       desbloquear.mutate(id);

@@ -1,23 +1,26 @@
-import { Alert, Linking, Pressable, Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import { MotiView } from "moti";
 import {
   Check,
   ChevronRight,
   Coins,
   Crown,
-  Database,
   FlaskConical,
-  Sparkles,
+  Gift,
+  BookOpen,
+  Coffee,
   Star,
   Zap,
 } from "lucide-react-native";
 
+import { PageHeader } from "@components/ui/PageHeader";
 import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
 import { Button } from "@components/ui/Button";
 import { Chip } from "@components/ui/Chip";
 import { useSuscripcion, useActivarPro, useEsPro } from "@hooks/useSuscripcion";
 import { PLANES } from "@services/suscripcion";
+import { useAuthStore } from "@stores/authStore";
 import { colors } from "@theme/colors";
 
 function FeatureRow({ texto, incluido }: { texto: string; incluido: boolean }) {
@@ -45,18 +48,21 @@ export default function Suscripcion() {
   const { data: sub } = useSuscripcion();
   const activarPro = useActivarPro();
   const esPro = useEsPro();
+  const demoMode = useAuthStore(state => state.demoMode);
+  const permitePrueba = __DEV__ || demoMode;
 
   const handleActivarPro = () => {
     Alert.alert(
-      "Activar ando Pro",
-      "En la versión de producción, esto abrirá el flujo de pago con la tienda de apps (App Store / Play Store). Por ahora se activa directamente para pruebas.",
+      "Probar ando Pro",
+      "Activa una prueba local de siete días en este dispositivo. No se realiza ningún cobro; los pagos aún no están disponibles.",
       [
         { text: "Cancelar", style: "cancel" },
         {
-          text: "Activar Pro (prueba)",
+          text: "Iniciar prueba de 7 días",
           onPress: () =>
             activarPro.mutate(undefined, {
-              onSuccess: () => Alert.alert("¡Bienvenido a ando Pro!", "Tu plan Pro está activo."),
+              onSuccess: () => Alert.alert("Prueba activada", "Puedes explorar el historial ampliado durante siete días."),
+              onError: () => Alert.alert("No se pudo activar", "Intenta nuevamente."),
             }),
         },
       ],
@@ -65,12 +71,7 @@ export default function Suscripcion() {
 
   return (
     <Screen scroll>
-      <View className="gap-1">
-        <Text className="text-3xl font-bold text-white">Plan y Suscripción</Text>
-        <Text className="text-base text-ink-300">
-          Elige el plan que mejor se adapta a ti.
-        </Text>
-      </View>
+      <PageHeader title="Planes" subtitle="Conoce las opciones de ando." />
 
       {/* Estado actual */}
       {esPro && (
@@ -82,7 +83,7 @@ export default function Suscripcion() {
         >
           <Crown size={24} color={colors.accent.mint} />
           <View className="flex-1">
-            <Text className="text-white font-bold">ando Pro activo</Text>
+            <Text className="text-white font-bold">Prueba de ando Pro activa</Text>
             <Text className="text-accent-mint text-xs mt-0.5">
               {sub?.expiraEn
                 ? `Válido hasta ${new Date(sub.expiraEn).toLocaleDateString("es-PE")}`
@@ -137,7 +138,7 @@ export default function Suscripcion() {
                 <Text className="text-2xl font-bold text-white mt-1">{PLANES.pro.precio}</Text>
                 <Text className="text-accent-mint text-xs mt-0.5">o {PLANES.pro.precioAnual}</Text>
               </View>
-              <Chip label="Recomendado" tone="mint" leadingIcon={<Star size={10} color={colors.accent.mint} />} />
+              <Chip label="En prueba" tone="mint" leadingIcon={<Star size={10} color={colors.accent.mint} />} />
             </View>
           </View>
 
@@ -150,7 +151,8 @@ export default function Suscripcion() {
               {!esPro ? (
                 <Button
                   variant="primary"
-                  label="Activar ando Pro"
+                  label={permitePrueba ? "Probar 7 días · sin cobro" : "Próximamente"}
+                  disabled={!permitePrueba}
                   loading={activarPro.isPending}
                   leadingIcon={<Zap size={18} color={colors.onPrimary} />}
                   onPress={handleActivarPro}
@@ -158,7 +160,7 @@ export default function Suscripcion() {
               ) : (
                 <View className="bg-accent-mint/10 rounded-xl p-3 items-center">
                   <Check size={20} color={colors.accent.mint} />
-                  <Text className="text-accent-mint font-semibold mt-1">Plan activo</Text>
+                  <Text className="text-accent-mint font-semibold mt-1">Prueba activa</Text>
                 </View>
               )}
             </View>
@@ -178,9 +180,8 @@ export default function Suscripcion() {
             <Text className="text-white font-bold text-base">{PLANES.investigador.nombre}</Text>
           </View>
           <Text className="text-ink-300 text-sm mb-3 leading-5">
-            Si eres participante del proyecto de investigación académica de la UNSCH, 
-            recibes todos los beneficios Pro de forma gratuita más compensaciones por 
-            tus datos aportados.
+            Propuesta para quienes quieran probar funciones y compartir su experiencia.
+            Las condiciones y los beneficios del programa todavía están por definir.
           </Text>
           {PLANES.investigador.beneficios.map((b) => (
             <FeatureRow key={b} texto={b} incluido={true} />
@@ -188,12 +189,12 @@ export default function Suscripcion() {
           <View className="mt-3">
             <Button
               variant="secondary"
-              label="Más información del estudio"
+              label="Conocer la propuesta"
               leadingIcon={<ChevronRight size={18} color={colors.brand} />}
               onPress={() =>
                 Alert.alert(
-                  "Proyecto de Investigación",
-                  "Contacta a tu investigador principal o escribe a: investigacion@ando.pe",
+                  "Programa colaborador",
+                  "La propuesta está en preparación. Compartir comentarios y autorizar datos para investigación serán decisiones independientes y opcionales.",
                 )
               }
             />
@@ -214,27 +215,28 @@ export default function Suscripcion() {
             <Chip label="Próximamente" tone="neutral" />
           </View>
           <Text className="text-ink-300 text-sm leading-5">
-            ¿Deberían pagarte por tus datos? Sí. Cuando activas el consentimiento
-            &quot;Investigación&quot;, tus datos anonimizados contribuyen a estudios académicos
-            y modelos de IA. En la próxima versión, recibirás créditos canjeables por:
+            Estamos explorando beneficios para colaboradores. Aún no hay créditos ni
+            canjes disponibles. Cualquier participación será opcional, con condiciones
+            claras y un consentimiento separado. Algunas ideas por validar:
           </Text>
           {[
-            "🎁 Meses de ando Pro gratis",
-            "📚 Acceso a publicaciones del estudio",
-            "☕ Canjes en comercios locales asociados",
-          ].map((item) => (
-            <Text key={item} className="text-ink-200 text-xs mt-2 ml-2">
-              {item}
-            </Text>
+            { texto: "Periodos de acceso a ando Pro", icon: Gift },
+            { texto: "Acceso a resultados del proyecto", icon: BookOpen },
+            { texto: "Beneficios con aliados por confirmar", icon: Coffee },
+          ].map(({ texto, icon: Icon }) => (
+            <View key={texto} className="flex-row items-center gap-2 mt-2 ml-2">
+              <Icon size={14} color={colors.accent.amber} />
+              <Text className="text-ink-200 text-xs flex-1">{texto}</Text>
+            </View>
           ))}
 
-          {sub && sub.datosAportados > 0 && (
+          {permitePrueba && sub && sub.datosAportados > 0 && (
             <View className="mt-3 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
               <Text className="text-amber-300 font-semibold text-sm">
-                Has aportado {sub.datosAportados} evento{sub.datosAportados > 1 ? "s" : ""} a la investigación
+                Contador de prueba: {sub.datosAportados} registros
               </Text>
               <Text className="text-amber-400/70 text-xs mt-0.5">
-                {sub.creditos} créditos acumulados (en implementación)
+                {sub.creditos} créditos de demostración · sin valor de canje
               </Text>
             </View>
           )}

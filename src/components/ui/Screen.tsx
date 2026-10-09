@@ -1,11 +1,14 @@
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
-import { ScrollView, View, type ScrollViewProps, type ViewProps } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Platform, Pressable, ScrollView, Text, View, type ScrollViewProps, type ViewProps } from "react-native";
+import { usePathname, useRouter } from "expo-router";
+import { ChevronLeft } from "lucide-react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { cn } from "@lib/cn";
 import { Stars } from "@components/gemelo/Stars";
-import { cosmic } from "@theme/colors";
+import { colors, cosmic } from "@theme/colors";
+import { screenBottomSpace } from "@theme/layout";
 
 type Props = ViewProps & {
   scroll?: boolean;
@@ -28,14 +31,18 @@ export function Screen({
   className,
   scroll = false,
   padded = true,
-  stars = 26,
+  stars = 12,
   scrollProps,
   edges = ["top", "left", "right"],
   tabBarSpace = true,
   ...rest
 }: Props) {
   const padding = padded ? "px-5 pt-4" : "";
-  const bottom = tabBarSpace ? "pb-36" : "pb-10";
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const pathname = usePathname();
+  const detail = ["/mi-cambio", "/mi-manana", "/rutina", "/metas", "/insights", "/logros", "/mis-datos", "/suscripcion", "/notificaciones"].includes(pathname);
+  const paddingBottom = tabBarSpace ? screenBottomSpace(Platform.OS, insets.bottom) : 40;
 
   return (
     <View className="flex-1" style={{ backgroundColor: cosmic.bg[0] }}>
@@ -49,20 +56,30 @@ export function Screen({
       {stars === false ? null : <Stars count={stars} />}
 
       <SafeAreaView className="flex-1" edges={edges}>
+        {detail && <View className="px-3">
+          <Pressable accessibilityRole="button" accessibilityLabel="Volver a la pantalla anterior"
+            onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")}
+            className="self-start flex-row items-center py-2 pr-3" style={{ minHeight: 44 }}>
+            <ChevronLeft size={25} color={colors.brandCyan} /><Text className="text-brand-300 text-base">Volver</Text>
+          </Pressable>
+        </View>}
         {scroll ? (
           <ScrollView
             className="flex-1"
-            contentContainerClassName={cn(padding, bottom)}
+            contentContainerClassName={padding}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+            automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
             showsVerticalScrollIndicator={false}
             {...scrollProps}
+            contentContainerStyle={[{ paddingBottom }, scrollProps?.contentContainerStyle]}
           >
             <View className={cn(className)} {...rest}>
               {children}
             </View>
           </ScrollView>
         ) : (
-          <View className={cn("flex-1", padding, bottom, className)} {...rest}>
+          <View className={cn("flex-1", padding, className)} {...rest} style={[{ paddingBottom }, rest.style]}>
             {children}
           </View>
         )}

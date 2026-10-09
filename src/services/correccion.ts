@@ -4,7 +4,7 @@ import { TABLES, OWNER_COL } from "@services/schema";
 import { lget, lset } from "@services/localDb";
 import { insertEventos } from "@services/gemelo";
 import { nuevoEvento } from "@services/eventoFactory";
-import type { ActividadPredicha, EventoRow } from "@services/types";
+import type { ActividadPredicha } from "@services/types";
 
 export type CorreccionRegistro = {
   id?: string;
@@ -18,8 +18,8 @@ export type CorreccionRegistro = {
 
 /**
  * Guarda una validación o corrección humana de actividad.
- * 1. Registra la corrección en `correcciones_actividad` para el re-entrenamiento del RF.
- * 2. Inserta un EventoRow verificado (confianza=100%, calidad=100%, procedencia="manual")
+ * 1. Conserva la corrección local; el evento sincronizable incluye la etiqueta humana.
+ * 2. Inserta un EventoRow confirmado por el titular (sin duración ni pasos).
  *    para que el gemelo y la rutina reflejen la realidad de inmediato.
  */
 export async function registrarCorreccionActividad(
@@ -42,50 +42,20 @@ export async function registrarCorreccionActividad(
     created_at: now,
   };
 
-  // 1. Guardar en local SIEMPRE (offline-first garantizado)
-  try {
-    const list = await lget<CorreccionRegistro[]>(`correcciones:${userId}`, []);
-    list.push(registro);
-    await lset(`correcciones:${userId}`, list);
-  } catch (err) {
-    console.warn("Aviso al guardar corrección localmente:", err);
-  }
-
-  // 2. Sincronizar con Supabase si está disponible
-  if (isRemote() && supabase) {
-    try {
-      const { error } = await supabase
-        .from(TABLES.correccionesActividad)
-        .insert({
-          [OWNER_COL]: userId,
-          actividad_original: params.actividadOriginal,
-          actividad_corregida: params.actividadCorregida,
-          confirmada: params.confirmada,
-          motivo: registro.motivo,
-          created_at: now,
-        });
-      if (error) {
-        console.warn("Aviso al guardar en correcciones_actividad (Supabase):", error.message);
-      }
-    } catch (err) {
-      console.warn("Error de red/esquema en correcciones_actividad:", err);
-    }
-  }
-
+  // Si el dispositivo no puede guardar, la UI debe informar el fallo.
+  const list = await lget<CorreccionRegistro[]>(`correcciones:${userId}`, []);
+  await lset(`correcciones:${userId}`, [...list, registro]);
+  // El evento manual también conserva la etiqueta para un futuro entrenamiento.
   // 3. Generar un evento verificado por el usuario ("entrada_manual")
-  const esPaso =
-    params.actividadCorregida === "desplazamiento" ||
-    params.actividadCorregida === "actividad_fisica";
-
   const eventoVerificado = nuevoEvento({
     procedencia: "entrada_manual",
     tipo_evento: "ventana_actividad",
     valor_texto: params.actividadCorregida,
-    valor_numerico: esPaso ? 120 : null,
-    unidad: esPaso ? "pasos" : null,
+    valor_numerico: null,
+    unidad: null,
     confianza: 100,
     calidad: 100,
-    medido_directamente: true,
+    medido_directamente: false,
     zona_general: params.zonaActual ?? null,
     datos_minimos: {
       calibracion_humana: true,
@@ -94,18 +64,7 @@ export async function registrarCorreccionActividad(
     },
   });
 
-  try {
-    await insertEventos(userId, [eventoVerificado]);
-  } catch (err) {
-    console.warn("Aviso al insertar evento verificado en Supabase, guardando local:", err);
-    try {
-      const list = await lget<EventoRow[]>(`events:${userId}`, []);
-      list.push(eventoVerificado);
-      await lset(`events:${userId}`, list);
-    } catch {
-      // Ignorar fallback secundario
-    }
-  }
+  await insertEventos(userId, [eventoVerificado]);
 }
 
 /**

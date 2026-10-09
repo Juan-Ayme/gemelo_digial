@@ -1,7 +1,21 @@
 import { Text, View, ScrollView } from "react-native";
 import { MotiView } from "moti";
-import { Lock, Star, Trophy } from "lucide-react-native";
+import {
+  Compass,
+  Cpu,
+  Flame,
+  Footprints,
+  Lock,
+  Moon,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Sun,
+  Trophy,
+  Zap,
+} from "lucide-react-native";
 
+import { PageHeader } from "@components/ui/PageHeader";
 import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
 import { Chip } from "@components/ui/Chip";
@@ -13,7 +27,7 @@ const CATEGORIA_LABEL = {
   actividad: "Actividad",
   constancia: "Constancia",
   salud: "Salud",
-  investigacion: "Investigación",
+  investigacion: "Colaboración",
 } as const;
 
 const CATEGORIA_COLOR = {
@@ -21,6 +35,21 @@ const CATEGORIA_COLOR = {
   constancia: colors.accent.amber,
   salud: colors.accent.mint,
   investigacion: colors.violet,
+};
+
+const LOGRO_ICONS: Record<string, any> = {
+  primer_captura: Sparkles,
+  racha_3_dias: Flame,
+  racha_7_dias: Trophy,
+  meta_pasos_1: Footprints,
+  meta_pasos_7: Footprints,
+  caminador: Footprints,
+  atleta: Zap,
+  madrugador: Sun,
+  buen_dormidor: Moon,
+  explorador: Compass,
+  consistente: ShieldCheck,
+  investigador: Cpu,
 };
 
 export default function Logros() {
@@ -40,12 +69,7 @@ export default function Logros() {
 
   return (
     <Screen scroll>
-      <View className="gap-1">
-        <Text className="text-3xl font-bold text-white">Logros</Text>
-        <Text className="text-base text-ink-300">
-          Hitos que reflejan tu progreso y constancia.
-        </Text>
-      </View>
+      <PageHeader title="Logros" subtitle="Cada avance cuenta." />
 
       {/* Progreso global */}
       <Card glass className="mt-5">
@@ -95,17 +119,22 @@ export default function Logros() {
                       : "bg-white/2 border-white/5 opacity-50"
                   }`}
                 >
-                  {/* Emoji / Lock */}
-                  <View
-                    className="w-12 h-12 rounded-2xl items-center justify-center"
-                    style={{ backgroundColor: logro.desbloqueado ? `${color}18` : "rgba(255,255,255,0.04)" }}
-                  >
-                    {logro.desbloqueado ? (
-                      <Text className="text-2xl">{logro.emoji}</Text>
-                    ) : (
-                      <Lock size={20} color="rgba(255,255,255,0.2)" />
-                    )}
-                  </View>
+                  {/* Icon / Lock */}
+                  {(() => {
+                    const LogroIcon = LOGRO_ICONS[logro.id] ?? Trophy;
+                    return (
+                      <View
+                        className="w-12 h-12 rounded-2xl items-center justify-center"
+                        style={{ backgroundColor: logro.desbloqueado ? `${color}18` : "rgba(255,255,255,0.04)" }}
+                      >
+                        {logro.desbloqueado ? (
+                          <LogroIcon size={22} color={color} />
+                        ) : (
+                          <Lock size={20} color="rgba(255,255,255,0.2)" />
+                        )}
+                      </View>
+                    );
+                  })()}
 
                   {/* Info */}
                   <View className="flex-1">

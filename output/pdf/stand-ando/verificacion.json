@@ -1,0 +1,31 @@
+{
+  "paginas": 3,
+  "formato": "A4 vertical, 210 x 297 mm",
+  "png_300_ppp": {
+    "01-descubre-ando-A4": [
+      2481,
+      3508
+    ],
+    "02-como-te-acompana-A4": [
+      2481,
+      3508
+    ],
+    "03-escanea-ando-con-QR-A4": [
+      2481,
+      3508
+    ]
+  },
+  "qr": {
+    "url": "https://gemelo-seven.vercel.app/",
+    "tamano_mm": 80,
+    "borde_blanco_modulos": 4,
+    "correccion": "M",
+    "decodificacion_verificada": {
+      "03-escanea-ando-con-QR-A4.png": "https://gemelo-seven.vercel.app/",
+      "QR-ando-web-8cm.png": "https://gemelo-seven.vercel.app/",
+      "PDF a 96 ppp": "https://gemelo-seven.vercel.app/",
+      "PDF a 150 ppp": "https://gemelo-seven.vercel.app/"
+    },
+    "web_http_status": 200
+  }
+}

@@ -1,6 +1,7 @@
 import { Text, View } from "react-native";
 
 import { cn } from "@lib/cn";
+import { colors } from "@theme/colors";
 
 type Props = {
   size?: "sm" | "md" | "lg";
@@ -22,10 +23,10 @@ export function Brand({ size = "md", className }: Props) {
           height: SIZE[size] * 0.55,
           borderRadius: SIZE[size],
           marginRight: SIZE[size] * 0.28,
-          backgroundColor: "#39E7FF",
-          shadowColor: "#39E7FF",
-          shadowOpacity: 0.7,
-          shadowRadius: SIZE[size] * 0.45,
+          backgroundColor: colors.brand,
+          shadowColor: colors.brand,
+          shadowOpacity: 0.8,
+          shadowRadius: SIZE[size] * 0.5,
           shadowOffset: { width: 0, height: 0 },
           elevation: 6,
         }}

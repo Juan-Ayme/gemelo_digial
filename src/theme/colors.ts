@@ -8,6 +8,15 @@
  * necesitas un color desde JS, añádelo aquí y refiérelo como `colors.xxx`.
  */
 export const colors = {
+  sheet: "#101b17",
+  scrim: "rgba(0,0,0,0.6)",
+  originalAvatar: "#d1fae5",
+  avatar: {
+    piel: { clara: "#edc3a3", media: "#ca936c", oscura: "#80573f" },
+    ropa: { menta: "#55c89a", violeta: "#af93e8", azul: "#73bce0" },
+    pelo: "#293a32", peloLuz: "#516052", pantalon: "#25483b", zapatos: "#e5eedc", suelo: "#214832",
+    cara: "#172c22", mascota: "#9fe0b8", interiorOreja: "#e2afab", mesa: "#547e63", cama: "#cbdac5", manta: "#4c9d75",
+  },
   brand: "#10b981",
   brandCyan: "#2dd4bf",
   violet: "#8b5cf6",

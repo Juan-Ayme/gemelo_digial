@@ -11,3 +11,5 @@ export async function leerHealthConnect(
 ): Promise<EventoRow[]> {
   return [];
 }
+
+export async function solicitarPermisosHealthConnect(_consents: ConsentMap): Promise<void> {}

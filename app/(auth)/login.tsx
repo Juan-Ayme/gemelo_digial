@@ -79,7 +79,7 @@ export default function Login() {
                 accessibilityRole="button"
                 accessibilityLabel="Volver"
               >
-                <ArrowLeft size={18} color="#dee1fb" />
+                <ArrowLeft size={18} color={colors.white} />
               </Pressable>
               <Brand size="sm" />
               <View className="w-10" />
@@ -121,8 +121,8 @@ export default function Login() {
                 name="email"
                 render={({ field: { value, onChange, onBlur } }) => (
                   <TextInput
-                    label="Correo institucional"
-                    placeholder="tu.correo@lapontificia.edu.pe"
+                    label="Correo electrónico"
+                    placeholder="tu@correo.com"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoComplete="email"
@@ -177,7 +177,7 @@ export default function Login() {
                 className="self-end"
               >
                 <Text
-                  className="text-primary-container"
+                  className="text-secondary font-medium"
                   style={{ fontFamily: "Inter_500Medium", fontSize: 13 }}
                 >
                   ¿Olvidaste tu contraseña?
@@ -191,7 +191,7 @@ export default function Login() {
                   transition={{ type: "timing", duration: 200 }}
                   className="flex-row items-start gap-2 rounded-2xl border border-error/40 bg-error-container/30 p-3"
                 >
-                  <TriangleAlert size={16} color="#ffb4ab" />
+                  <TriangleAlert size={16} color={colors.accent.coral} />
                   <Text
                     className="flex-1 text-error"
                     style={{ fontFamily: "Inter_500Medium", fontSize: 13 }}
@@ -205,8 +205,8 @@ export default function Login() {
                 label="Ingresar"
                 loading={loading}
                 trailingIcon={<ArrowRight size={18} color={colors.onPrimary} />}
-                className="bg-primary-container active:bg-primary-fixed mt-2"
-                labelClassName="text-on-primary"
+                variant="primary"
+                className="mt-2"
                 onPress={onSubmit}
               />
 
@@ -225,6 +225,7 @@ export default function Login() {
               <Button
                 label="Continuar en modo demo"
                 variant="ghost"
+                className="border border-outline-variant/30 bg-surface-container/20"
                 labelClassName="text-on-surface"
                 onPress={() => {
                   enterDemo();
@@ -241,7 +242,7 @@ export default function Login() {
                 ¿Aún no tienes cuenta?{" "}
                 <Link
                   href="/(auth)/register"
-                  className="text-primary-container"
+                  className="text-secondary"
                   style={{ fontFamily: "Inter_600SemiBold" }}
                 >
                   Crear una

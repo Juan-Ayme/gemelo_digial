@@ -37,7 +37,7 @@ export function ProBadge({ label = "PRO" }: { label?: string }) {
 export function ProGate({
   children,
   titulo = "Función ando Pro",
-  descripcion = "Desbloquea tendencias a largo plazo, métricas avanzadas y modelos de predicción profunda.",
+  descripcion = "Explora el historial ampliado en una prueba de ando Pro. El plan de pago aún está en validación.",
   beneficios,
   mode = "card",
   compact = false,
@@ -67,7 +67,7 @@ export function ProGate({
             <View className="flex-row items-center gap-1.5 mb-1">
               <Crown size={14} color="#fbbf24" />
               <Text className="text-amber-300 font-bold text-xs uppercase tracking-wider">
-                Desbloquea todo
+                Conoce la prueba
               </Text>
             </View>
             <Text className="text-white text-xs leading-4">{descripcion}</Text>
@@ -109,7 +109,7 @@ export function ProGate({
           <View className="flex-row items-center gap-1.5 bg-amber-500/20 border border-amber-400/40 px-3 py-1 rounded-full mb-3">
             <Crown size={14} color="#fbbf24" />
             <Text className="text-amber-300 font-bold text-xs uppercase tracking-widest">
-              Exclusivo ando Pro
+              ando Pro · en prueba
             </Text>
           </View>
 
@@ -139,16 +139,16 @@ export function ProGate({
             className="w-full py-3.5 px-6 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-85 shadow-lg shadow-amber-500/20"
             style={{ backgroundColor: "#fbbf24" }}
           >
-            <Sparkles size={16} color="#0e1224" />
-            <Text className="text-surface-900 font-bold text-sm">
+            <Sparkles size={16} color="#022c22" />
+            <Text className="text-ink-950 font-bold text-sm">
               Actualizar a ando Pro
             </Text>
-            <ArrowRight size={14} color="#0e1224" />
+            <ArrowRight size={14} color="#022c22" />
           </Pressable>
 
           {/* Nota alternativa: Data Rewards */}
           <Text className="text-[11px] text-ink-400 text-center mt-3">
-            O activa <Text className="text-brand-300 font-semibold">Data Rewards</Text> aportando datos anónimos a investigación.
+            O activa <Text className="text-brand-300 font-semibold">Data Rewards</Text> aportando datos anónimos para la mejora del modelo.
           </Text>
         </MotiView>
       </View>

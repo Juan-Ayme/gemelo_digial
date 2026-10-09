@@ -53,8 +53,14 @@ if not WRITE_BACK:
     spark.stop()
     raise SystemExit(0)
 
-version, modelo_id = C.registrar_modelo(spark, JDBC_URL, metrics, NUM_TREES, SEED, etiqueta="rf")
-C.escribir_caracteristicas(JDBC_URL, feat)
-C.escribir_predicciones(JDBC_URL, model, feat, modelo_id, PRED_ESTADO)
+# Resuelve el enum antes de abrir la transacción de publicación.
+estado = C.resolver_estado_prediccion(spark, JDBC_URL, PRED_ESTADO)
+try:
+    # Modelo, ventanas y predicciones se confirman juntos: no quedan publicaciones parciales.
+    with C.J.transaccion(spark, C._url(JDBC_URL)) as conn:
+        C.escribir_caracteristicas(JDBC_URL, feat, conn=conn)
+        version, modelo_id = C.registrar_modelo(spark, JDBC_URL, metrics, NUM_TREES, SEED, etiqueta="rf", conn=conn)
+        C.escribir_predicciones(JDBC_URL, model, feat, modelo_id, PRED_ESTADO, conn=conn, estado_resuelto=estado)
+finally:
+    spark.stop()
 print(f"Escrito: modelo {version} (id={modelo_id}) + caracteristicas_actividad + predicciones.")
-spark.stop()

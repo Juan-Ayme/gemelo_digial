@@ -13,6 +13,7 @@ import {
   Trash2,
 } from "lucide-react-native";
 
+import { PageHeader } from "@components/ui/PageHeader";
 import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
 import { Button } from "@components/ui/Button";
@@ -83,12 +84,7 @@ export default function Notificaciones() {
 
   return (
     <Screen scroll>
-      <View className="gap-1">
-        <Text className="text-3xl font-bold text-white">Notificaciones</Text>
-        <Text className="text-base text-ink-300">
-          Alertas de salud y recordatorios de actividad.
-        </Text>
-      </View>
+      <PageHeader title="Notificaciones" subtitle="Elige qué avisos quieres recibir." />
 
       {/* ── Banner de estado de permisos ── */}
       {!permisos?.concedido && (
@@ -155,25 +151,25 @@ export default function Notificaciones() {
           {
             icon: ShieldAlert,
             color: colors.accent.coral,
-            titulo: "🔴 Alerta de salud crítica",
+            titulo: "Alerta de salud crítica",
             desc: "Frecuencia cardíaca fuera del rango normal o sedentarismo > 2 horas.",
           },
           {
             icon: Bell,
             color: colors.accent.amber,
-            titulo: "🟡 Advertencia de actividad",
+            titulo: "Advertencia de actividad",
             desc: "Menos de 5,000 pasos a las 6pm o racha de inactividad prolongada.",
           },
           {
             icon: Timer,
             color: colors.violet,
-            titulo: "⏰ Recordatorio de movimiento",
+            titulo: "Recordatorio de movimiento",
             desc: "Cada 90 minutos si llevas rato quieto. Solo si lo activas.",
           },
           {
             icon: Heart,
             color: colors.accent.mint,
-            titulo: "✅ Confirmación positiva",
+            titulo: "Confirmación de progreso",
             desc: "Cuando alcanzas tu meta diaria de pasos. Máximo 1 al día.",
           },
         ].map(({ icon: Icon, color, titulo, desc }) => (

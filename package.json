@@ -68,7 +68,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:regressions": "node scripts/check-regressions.cjs"
   },
   "private": true
 }

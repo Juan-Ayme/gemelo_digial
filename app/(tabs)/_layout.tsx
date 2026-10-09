@@ -1,13 +1,17 @@
 import { Tabs } from "expo-router";
 import { Activity, CalendarDays, Sparkles, UserCircle } from "lucide-react-native";
-import { Platform, StyleSheet } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "@theme/colors";
+import { TAB_BAR_HEIGHT, tabBarBottom } from "@theme/layout";
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
+      backBehavior="history"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.brandCyan,
@@ -22,8 +26,8 @@ export default function TabsLayout() {
           position: "absolute",
           left: 18,
           right: 18,
-          bottom: Platform.OS === "ios" ? 28 : 18,
-          height: 66,
+          bottom: tabBarBottom(Platform.OS, insets.bottom),
+          height: TAB_BAR_HEIGHT,
           borderRadius: 26,
           borderTopWidth: 0,
           borderWidth: 1,
@@ -53,32 +57,34 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Hoy",
-          tabBarIcon: ({ color, size }) => <Activity size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => <View className={focused ? "rounded-xl px-3 py-1 bg-white/10" : "px-3 py-1"}><Activity size={size} color={color} strokeWidth={focused ? 2.4 : 1.8} /></View>,
         }}
       />
       <Tabs.Screen
         name="historial"
         options={{
           title: "Historial",
-          tabBarIcon: ({ color, size }) => <CalendarDays size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => <View className={focused ? "rounded-xl px-3 py-1 bg-white/10" : "px-3 py-1"}><CalendarDays size={size} color={color} strokeWidth={focused ? 2.4 : 1.8} /></View>,
         }}
       />
       <Tabs.Screen
         name="gemelo"
         options={{
           title: "Gemelo",
-          tabBarIcon: ({ color, size }) => <Sparkles size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => <View className={focused ? "rounded-xl px-3 py-1 bg-white/10" : "px-3 py-1"}><Sparkles size={size} color={color} strokeWidth={focused ? 2.4 : 1.8} /></View>,
         }}
       />
       <Tabs.Screen
         name="perfil"
         options={{
           title: "Perfil",
-          tabBarIcon: ({ color, size }) => <UserCircle size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => <View className={focused ? "rounded-xl px-3 py-1 bg-white/10" : "px-3 py-1"}><UserCircle size={size} color={color} strokeWidth={focused ? 2.4 : 1.8} /></View>,
         }}
       />
 
       {/* ── Pantallas sin pestaña (accesibles desde Perfil) ── */}
+      <Tabs.Screen name="mi-cambio" options={{ href: null }} />
+      <Tabs.Screen name="mi-manana" options={{ href: null }} />
       <Tabs.Screen name="rutina"         options={{ href: null }} />
       <Tabs.Screen name="metas"          options={{ href: null }} />
       <Tabs.Screen name="insights"       options={{ href: null }} />

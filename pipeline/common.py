@@ -9,6 +9,7 @@ que lo usen tanto `gemelo_pipeline.py` (datos reales) como `bootstrap_sintetico.
 import json
 import math
 import time
+import jdbc_write as J
 
 from pyspark.sql import SparkSession, functions as F, Window
 from pyspark.ml import Pipeline
@@ -126,7 +127,7 @@ def entrenar_rf(feat, num_trees: int = 100, seed: int = 42):
     return model, metrics
 
 
-def registrar_modelo(spark, url: str, metrics: dict, num_trees: int, seed: int, etiqueta: str = "rf") -> tuple:
+def registrar_modelo(spark, url: str, metrics: dict, num_trees: int, seed: int, etiqueta: str = "rf", conn=None) -> tuple:
     """Inserta una fila en versiones_modelo (sin FK a usuario). Devuelve (version, id)."""
     version = f"{etiqueta}-{time.strftime('%Y%m%d-%H%M%S')}"
     fila = spark.createDataFrame(
@@ -138,12 +139,25 @@ def registrar_modelo(spark, url: str, metrics: dict, num_trees: int, seed: int, 
         )],
         ["version", "algoritmo", "estado", "semilla", "hiperparametros", "variables", "metricas"],
     )
+    if conn is not None:
+        stmt = conn.prepareStatement(J.sql_insert("versiones_modelo", fila.columns) + " RETURNING id")
+        try:
+            J.enlazar(stmt, tuple(fila.first()), spark._jvm)
+            resultado = stmt.executeQuery()
+            try:
+                if not resultado.next():
+                    raise RuntimeError("No se devolvió el id del modelo")
+                return version, resultado.getString(1)
+            finally:
+                resultado.close()
+        finally:
+            stmt.close()
     escribir_jdbc(fila, url, "versiones_modelo")
     modelo_id = leer_jdbc(spark, url, "versiones_modelo").filter(F.col("version") == version).select("id").first()["id"]
     return version, modelo_id
 
 
-def escribir_caracteristicas(url: str, feat):
+def escribir_caracteristicas(url: str, feat, conn=None):
     """Solo válido con usuario_id reales (FK a perfiles)."""
     caracteristicas = (
         feat.select(
@@ -155,7 +169,21 @@ def escribir_caracteristicas(url: str, feat):
         )
         .filter(F.col("ventana_fin") > F.col("ventana_inicio"))
     )
-    escribir_jdbc(caracteristicas, url, "caracteristicas_actividad")
+    claves = ["usuario_id", "ventana_inicio", "ventana_fin"]
+    # Una fila por ventana; desempate estable si llegan eventos repetidos.
+    orden = [F.col(c).asc_nulls_last() for c in caracteristicas.columns if c not in claves]
+    caracteristicas = (
+        caracteristicas.withColumn("_rn", F.row_number().over(Window.partitionBy(*claves).orderBy(*orden)))
+        .filter(F.col("_rn") == 1).drop("_rn")
+    )
+    def guardar(conexion):
+        J.escribir_filas(conexion, feat.sparkSession._jvm, "caracteristicas_actividad",
+                         caracteristicas.columns, caracteristicas.toLocalIterator(), claves)
+    if conn is not None:
+        guardar(conn)
+    else:
+        with J.transaccion(feat.sparkSession, _url(url)) as conexion:
+            guardar(conexion)
 
 
 def resolver_estado_prediccion(spark, url: str, preferido: str = "vigente") -> str:
@@ -219,9 +247,9 @@ def resolver_estado_prediccion(spark, url: str, preferido: str = "vigente") -> s
     return preferido
 
 
-def escribir_predicciones(url: str, model, feat, modelo_id, pred_estado: str = "vigente"):
+def escribir_predicciones(url: str, model, feat, modelo_id, pred_estado: str = "vigente", conn=None, estado_resuelto=None):
     """Última ventana de cada usuario -> próxima actividad. usuario_id deben ser reales."""
-    estado_final = resolver_estado_prediccion(feat.sparkSession, url, pred_estado)
+    estado_final = estado_resuelto or resolver_estado_prediccion(feat.sparkSession, url, pred_estado)
     labels = model.stages[3].labels
     map_expr = F.array(*[F.lit(x) for x in labels])
     ult = feat.withColumn(
@@ -242,5 +270,8 @@ def escribir_predicciones(url: str, model, feat, modelo_id, pred_estado: str = "
             F.lit("Predicción del Random Forest (PySpark).").alias("explicacion"),
         )
     )
-    escribir_jdbc(pred, url, "predicciones")
+    if conn is not None:
+        J.escribir_filas(conn, feat.sparkSession._jvm, "predicciones", pred.columns, pred.toLocalIterator())
+    else:
+        escribir_jdbc(pred, url, "predicciones")
     return pred

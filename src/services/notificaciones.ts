@@ -124,14 +124,7 @@ async function incrementarContador(): Promise<void> {
   await AsyncStorage.setItem(KEY_ENVIADAS_HOY, JSON.stringify({ fecha: hoy, count }));
 }
 
-// ─── Envío de notificaciones ──────────────────────────────────────────────────
 
-const EMOJI_TIPO: Record<AlertaSalud["tipo"], string> = {
-  peligro: "🔴",
-  advertencia: "🟡",
-  info: "💡",
-  ok: "✅",
-};
 
 /**
  * Evalúa las alertas activas y envía notificaciones push para las más urgentes.
@@ -159,10 +152,9 @@ export async function enviarNotificacionesDeAlertas(
   for (const alerta of urgentes) {
     if (enviadas_ >= MAX_POR_DIA) break;
 
-    const emoji = EMOJI_TIPO[alerta.tipo];
     const notifId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: `${emoji} ${alerta.titulo}`,
+        title: alerta.titulo,
         body: alerta.detalle,
         data: { alertaId: alerta.id, tipo: alerta.tipo },
         badge: 1,
@@ -195,12 +187,13 @@ export async function programarRecordatorioSedentarismo(
   if (!permisos.concedido) return;
 
   // Cancelar recordatorio previo antes de reprogramar
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  const previous = await AsyncStorage.getItem(`ando-recordatorio:${userId}`);
+  if (previous) await Notifications.cancelScheduledNotificationAsync(previous);
 
   const notifId = await Notifications.scheduleNotificationAsync({
     content: {
-      title: "⏰ Tiempo de moverse",
-      body: "Llevas un buen rato quieto. Una caminata corta mejora tu energía y circulación.",
+      title: "Tiempo de moverse",
+      body: "Si te viene bien, haz una pausa a tu ritmo. Este es un recordatorio programado, no una detección de inactividad.",
       data: { tipo: "sedentarismo" },
     },
     trigger: {
@@ -210,6 +203,7 @@ export async function programarRecordatorioSedentarismo(
     },
   });
 
+  await AsyncStorage.setItem(`ando-recordatorio:${userId}`, notifId);
   await guardarEnHistorial(userId, {
     id: notifId,
     titulo: "Recordatorio de movimiento",

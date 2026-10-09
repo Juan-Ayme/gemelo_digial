@@ -1,116 +1,85 @@
+import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { AppState } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import { qk } from "@lib/queryClient";
 import { useAuthStore } from "@stores/authStore";
-import {
-  buildGemelo,
-  buildRutina,
-  fetchEventsToday,
-  fetchPrediccionRF,
-  insertEventos,
-  insertEventoSimulado,
-} from "@services/gemelo";
-import { capturarSensoresReales } from "@services/sensors";
-import type {
-  ConsentMap,
-  EventoRow,
-  GemeloSnapshot,
-  RutinaBloque,
-} from "@services/types";
-import type { FuentePrediccion } from "@services/gemelo";
+import { buildGemelo, buildRutina, fetchEventsToday, fetchPrediccionRF, insertEventoSimulado } from "@services/gemelo";
+import { capturarYGuardar, solicitarPermisosSensores } from "@services/sensors";
+import { leerEventosDesde, estadoSincronizacion, sincronizarEventos } from "@services/eventStore";
+import { fechaLocal } from "@services/metricas";
+import { estadoTareaSegundoPlano } from "@services/backgroundCapture";
+import type { ConsentMap } from "@services/types";
 
-// ─── Eventos de hoy (base para todas las derivaciones) ─────────────────────
-
-function useEventosHoy<T>(select: (events: EventoRow[]) => T) {
-  const userId = useAuthStore((s) => s.user?.id ?? null);
-
-  return useQuery({
-    queryKey: userId ? qk.events(userId) : ["events", "anon"],
-    enabled: !!userId,
-    queryFn: () => fetchEventsToday(userId!),
-    select,
-  });
+// La fecha forma parte de la clave: al cruzar medianoche no reutilizamos ayer.
+function useDia() {
+  const [dia, setDia] = useState(fechaLocal(new Date()));
+  useEffect(() => {
+    const actualizar = () => setDia(fechaLocal(new Date()));
+    const timer = setInterval(actualizar, 60000);
+    const state = AppState.addEventListener("change", value => { if (value === "active") actualizar(); });
+    return () => { clearInterval(timer); state.remove(); };
+  }, []);
+  return dia;
 }
-
-// ─── Predicción del pipeline RF (tabla predicciones de Supabase) ────────────
-
-function usePrediccionRF() {
-  const userId = useAuthStore((s) => s.user?.id ?? null);
-
-  return useQuery({
-    queryKey: userId ? qk.prediccion(userId) : ["prediccion-rf", "anon"],
-    enabled: !!userId,
-    queryFn: () => fetchPrediccionRF(userId!),
-    // El pipeline corre 1 vez/día: 30 min "fresco" evita requests innecesarios
-    // pero permite actualizar la predicción durante el día si el pipeline reescribió.
-    staleTime: 1000 * 60 * 30,
-  });
+function useEventosHoy() {
+  const id = useAuthStore(s => s.user?.id ?? ""); const dia = useDia();
+  return useQuery({ queryKey: [...qk.events(id), dia], enabled: !!id, queryFn: () => fetchEventsToday(id), refetchInterval: 60000 });
 }
-
-// ─── Hook principal ─────────────────────────────────────────────────────────
-
-/**
- * Snapshot del gemelo digital con predicción de la mejor fuente disponible:
- *   1. Predicción del Random Forest (pipeline PySpark → tabla `predicciones`)
- *   2. Heurística de frecuencia local (fallback cuando no hay RF)
- *
- * `fuentePrediccion` indica cuál de las dos se está usando.
- */
-export function useGemelo(): {
-  data: (GemeloSnapshot & { fuentePrediccion: FuentePrediccion }) | undefined;
-  isLoading: boolean;
-} {
-  const eventosQuery = useEventosHoy<GemeloSnapshot>(buildGemelo);
-  const rfQuery = usePrediccionRF();
-
-  const snapshot = eventosQuery.data;
-  const rfResult = rfQuery.data;
-
-  const data = snapshot
-    ? {
-        ...snapshot,
-        // RF tiene prioridad; heurística es el fallback silencioso
-        prediccion: rfResult?.prediccion ?? snapshot.prediccion,
-        fuentePrediccion: (rfResult?.fuente ?? snapshot.fuentePrediccion ?? "rf_local") as FuentePrediccion,
-      }
-    : undefined;
-
-  return {
-    data,
-    isLoading: eventosQuery.isLoading || rfQuery.isLoading,
+export function useGemelo() {
+  const id = useAuthStore(s => s.user?.id ?? "");
+  const events = useEventosHoy();
+  const history = useQuery({ queryKey: qk.eventHistory(id), enabled: !!id, queryFn: () => { const d = new Date(); d.setDate(d.getDate() - 30); return leerEventosDesde(id, d); } });
+  const rf = useQuery({ queryKey: qk.prediccion(id), enabled: !!id, queryFn: () => fetchPrediccionRF(id), staleTime: 60000, refetchInterval: 60000 });
+  const refetch = async () => {
+    const [result] = await Promise.all([events.refetch(), history.refetch(), rf.refetch()]);
+    return result;
   };
+  const snapshot = events.data ? buildGemelo(events.data, history.data ?? []) : undefined;
+  const prediction = rf.data?.prediccion;
+  const vigente = prediction && Date.now() - Date.parse(prediction.generadaEn) <= prediction.horizonteMin * 60000;
+  return { data: snapshot ? { ...snapshot, prediccion: vigente ? prediction : snapshot.prediccion, fuentePrediccion: vigente ? "rf" as const : snapshot.fuentePrediccion } : undefined,
+    isLoading: events.isLoading, isFetching: events.isFetching, error: events.error, refetch };
 }
 
-/** Bloques de rutina (timeline) derivados de los eventos de hoy. */
-export const useRutina = () => useEventosHoy<RutinaBloque[]>(buildRutina);
-
-/** Inserta una ventana simulada y refresca el gemelo/rutina. */
+/** Recuperar lecturas al volver a una pantalla o al reabrir la app en el teléfono. */
+export function useActualizarLecturasAlVolver() {
+  const id = useAuthStore(s => s.user?.id ?? "");
+  const qc = useQueryClient();
+  useFocusEffect(useCallback(() => {
+    if (!id) return;
+    const actualizar = () => {
+      qc.invalidateQueries({ queryKey: qk.events(id) });
+      qc.invalidateQueries({ queryKey: qk.eventHistory(id) });
+      qc.invalidateQueries({ queryKey: qk.prediccion(id) });
+      qc.invalidateQueries({ queryKey: qk.historialPrefix(id) });
+      qc.invalidateQueries({ queryKey: qk.sync(id) });
+      qc.invalidateQueries({ queryKey: qk.background(id) });
+      qc.invalidateQueries({ queryKey: qk.impacto(id) });
+    };
+    actualizar();
+    const subscription = AppState.addEventListener("change", state => { if (state === "active") actualizar(); });
+    return () => subscription.remove();
+  }, [id, qc]));
+}
+export function useRutina() { const query = useEventosHoy(); return { ...query, data: query.data ? buildRutina(query.data) : undefined }; }
+function useRefrescar() {
+  const qc = useQueryClient(); const id = useAuthStore(s => s.user?.id ?? "");
+  return () => { qc.invalidateQueries({ queryKey: qk.events(id) }); qc.invalidateQueries({ queryKey: qk.eventHistory(id) }); qc.invalidateQueries({ queryKey: qk.historialPrefix(id) }); qc.invalidateQueries({ queryKey: qk.sync(id) }); qc.invalidateQueries({ queryKey: qk.impacto(id) }); };
+}
 export function useSimularCaptura() {
-  const qc = useQueryClient();
-  const userId = useAuthStore((s) => s.user?.id ?? null);
-
-  return useMutation({
-    mutationFn: () => insertEventoSimulado(userId!),
-    onSuccess: () => {
-      if (userId) qc.invalidateQueries({ queryKey: qk.events(userId) });
-    },
-  });
+  const id = useAuthStore(s => s.user?.id ?? ""); const refresh = useRefrescar();
+  return useMutation({ mutationFn: () => insertEventoSimulado(id), onSuccess: refresh });
 }
-
-/** Lee los sensores reales autorizados, los guarda y refresca el gemelo/rutina. */
 export function useCapturarSensores() {
-  const qc = useQueryClient();
-  const userId = useAuthStore((s) => s.user?.id ?? null);
-
-  return useMutation({
-    mutationFn: async (consents: ConsentMap) => {
-      const eventos = await capturarSensoresReales(userId!, consents);
-      if (!eventos.length) throw new Error("sin-sensores");
-      await insertEventos(userId!, eventos);
-      return eventos.length;
-    },
-    onSuccess: () => {
-      if (userId) qc.invalidateQueries({ queryKey: qk.events(userId) });
-    },
-  });
+  const id = useAuthStore(s => s.user?.id ?? ""); const refresh = useRefrescar();
+  return useMutation({ mutationFn: async (consents: ConsentMap) => { await solicitarPermisosSensores(consents); const n = await capturarYGuardar(id, consents); if (!n) throw new Error("sin-sensores"); return n; }, onSuccess: refresh });
+}
+export function useEstadoCaptura() {
+  const id = useAuthStore(s => s.user?.id ?? "");
+  const sync = useQuery({ queryKey: qk.sync(id), enabled: !!id, queryFn: () => estadoSincronizacion(id), refetchInterval: 15000 });
+  const bg = useQuery({ queryKey: qk.background(id), enabled: !!id, queryFn: estadoTareaSegundoPlano, refetchInterval: 30000 });
+  const refresh = useRefrescar();
+  const retry = useMutation({ mutationFn: () => sincronizarEventos(id), onSuccess: refresh });
+  return { sync, bg, retry };
 }

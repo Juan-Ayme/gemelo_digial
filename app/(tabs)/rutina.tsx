@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from "lucide-react-native";
 
+import { PageHeader } from "@components/ui/PageHeader";
 import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
 import { Chip } from "@components/ui/Chip";
@@ -105,16 +106,11 @@ export default function Rutina() {
 
   return (
     <Screen scroll>
-      <View className="gap-1">
-        <Text className="text-3xl font-bold text-white">Rutina de hoy</Text>
-        <Text className="text-base text-ink-300">
-          Tu cronología diaria organizada según tu ritmo y momentos clave.
-        </Text>
-      </View>
+      <PageHeader title="Mi día" subtitle="Los momentos que registraste hoy." />
 
       <View className="flex-row gap-2 mt-4 flex-wrap">
         <Chip
-          label={hayBloques ? "En seguimiento" : "Sin datos"}
+          label={hayBloques ? "Con registros" : "Sin datos"}
           tone={hayBloques ? "mint" : "neutral"}
           leadingIcon={
             hayBloques ? (
@@ -128,7 +124,7 @@ export default function Rutina() {
           leadingIcon={<Layers size={12} color={colors.brandCyan} />}
         />
         <Chip
-          label="Ritmo habitual"
+          label="Registro de hoy"
           tone="violet"
           leadingIcon={<Sparkles size={12} color={colors.violet} />}
         />
@@ -218,7 +214,7 @@ export default function Rutina() {
                         <View className="flex-row items-center gap-1 bg-white/5 rounded-md px-1.5 py-0.5">
                           <Sparkles size={10} color={colors.brandCyan} />
                           <Text className="text-[11px] text-brand-200">
-                            {bloque.confianza}% confianza
+                            {bloque.confianza}% puntuación de registro
                           </Text>
                         </View>
                       ) : null}
@@ -245,8 +241,8 @@ export default function Rutina() {
             Todavía no hay ventanas hoy
           </Text>
           <Text className="text-sm text-ink-300 mt-1 leading-5">
-            Tus sensores registran automáticamente tus actividades en segundo plano.
-            También puedes registrar una ventana de prueba en la pestaña "Hoy".
+            Registra un momento desde "Hoy" con los sensores autorizados.
+            La captura de fondo depende de los permisos y de tu dispositivo.
           </Text>
         </Card>
       )}
@@ -257,11 +253,11 @@ export default function Rutina() {
         </Text>
         <Text className="text-base text-ink-100 mt-2 leading-6">
           {hayBloques
-            ? "Tu rutina se mantiene dentro de tu línea base personal. Los bloques contiguos se consolidan automáticamente para facilitar la interpretación de tus patrones."
+            ? "Aquí se muestran los momentos registrados. Solo se unen intervalos contiguos; los huecos sin medición no se consideran actividad."
             : "Cuando tengas varias ventanas registradas verás aquí observaciones analíticas sobre tu rutina."}
         </Text>
         <Text className="text-xs text-ink-300 mt-3 leading-4">
-          Los patrones no constituyen un diagnóstico médico. Reflejan correlaciones de sensores y modelos heurísticos y Random Forest.
+          Una lectura puntual muestra un momento, no toda tu jornada. Este registro no evalúa tu salud.
         </Text>
       </Card>
     </Screen>

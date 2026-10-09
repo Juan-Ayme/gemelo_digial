@@ -29,8 +29,11 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { PREFERENCIAS_DEFAULT, type Preferencias } from "@services/preferencias";
 import type { ActividadPredicha } from "@services/types";
 import { colors } from "@theme/colors";
+import { useAvatarMotion } from "@components/gemelo/useAvatarMotion";
+import { AvatarPersonaje } from "@components/gemelo/AvatarPersonaje";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -144,7 +147,6 @@ const ACCENT: Record<string, string> = {
   permanencia:      colors.textMuted,
 };
 
-const BODY_COLOR = "#D1FAE5";
 const EASE_SMOOTH = { duration: 560, easing: Easing.inOut(Easing.quad) } as const;
 const EASE_LOOP   = Easing.inOut(Easing.sin);
 
@@ -155,14 +157,24 @@ type Props = {
   /** Tamaño en px del cuadrado contenedor. Default 200. */
   size?: number;
   className?: string;
+  preferencias?: Preferencias;
 };
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 
-export function GemeloAvatar({ actividad = null, size = 200 }: Props) {
+export function GemeloAvatar({ preferencias = PREFERENCIAS_DEFAULT, ...props }: Props) {
+  return preferencias.aspecto === "neutral"
+    ? <AvatarOriginal {...props} preferencias={preferencias} />
+    : <AvatarPersonaje actividad={props.actividad} size={props.size ?? 200} preferencias={preferencias} />;
+}
+
+function AvatarOriginal({ actividad = null, size = 200, preferencias = PREFERENCIAS_DEFAULT }: Props) {
+  const animar = useAvatarMotion();
+  // El aspecto original conserva su figura luminosa; los cambios son opcionales.
+  const BODY_COLOR = colors.originalAvatar;
   const key   = actividad ?? "permanencia";
   const pose  = POSES[key] ?? POSES.permanencia;
-  const color = ACCENT[key] ?? colors.brandCyan;
+  const color = preferencias.color === "violeta" ? colors.violet : preferencias.color === "azul" ? colors.brandCyan : ACCENT[key] ?? colors.brandCyan;
   const sc    = size / CH; // factor de escala
 
   // ── Shared values por articulación ────────────────────────────────────────
@@ -182,11 +194,17 @@ export function GemeloAvatar({ actividad = null, size = 200 }: Props) {
   // ── Efecto: cambia pose cuando cambia la actividad ────────────────────────
 
   useEffect(() => {
-    cancelAnimation(lArm);
-    cancelAnimation(rArm);
-    cancelAnimation(lThigh);
-    cancelAnimation(rThigh);
-    cancelAnimation(breathe);
+    const articulaciones = [lArm, rArm, lFA, rFA, lThigh, rThigh, lShin, rShin, torso, body, breathe];
+    const parar = () => articulaciones.forEach(value => cancelAnimation(value));
+    parar();
+    if (!animar) {
+      lArm.value = pose.lArm; rArm.value = pose.rArm;
+      lFA.value = pose.lForearm; rFA.value = pose.rForearm;
+      lThigh.value = pose.lThigh; rThigh.value = pose.rThigh;
+      lShin.value = pose.lShin; rShin.value = pose.rShin;
+      torso.value = pose.torso; body.value = pose.body; breathe.value = 0;
+      return parar;
+    }
 
     // Articulaciones estáticas (siempre con timing)
     torso.value  = withTiming(pose.torso,    EASE_SMOOTH);
@@ -224,8 +242,9 @@ export function GemeloAvatar({ actividad = null, size = 200 }: Props) {
       -1,
       true,
     );
+    return parar;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [key, animar]);
 
   // ── Estilos animados ───────────────────────────────────────────────────────
 

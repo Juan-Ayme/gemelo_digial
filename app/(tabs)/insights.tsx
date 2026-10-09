@@ -2,11 +2,9 @@ import { Text, View } from "react-native";
 import { MotiView } from "moti";
 import {
   Activity,
-  BookOpen,
-  Crown,
+  BarChart3,
   Flame,
   Footprints,
-  HeartPulse,
   Moon,
   Sparkles,
   TrendingDown,
@@ -15,16 +13,19 @@ import {
   Zap,
 } from "lucide-react-native";
 
+import { PageHeader } from "@components/ui/PageHeader";
 import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
 import { Chip } from "@components/ui/Chip";
-import { ProGate, ProBadge } from "@components/ui/ProGate";
+import { useMetas } from "@hooks/useMetas";
+import { compararSemanas } from "@services/resumenSemanal";
+import type { MetasConfig } from "@services/metas";
+import type { DiaResumen, SemanaResumen } from "@services/historial";
 import { useSemanaResumen, useHistorial } from "@hooks/useHistorial";
 import { useGemelo } from "@hooks/useGemelo";
 import { useLogros, useEvaluarLogros } from "@hooks/useLogros";
-import { useEsPro } from "@hooks/useSuscripcion";
 import { ACTIVIDAD_LABELS } from "@services/types";
-import type { ActividadPredicha } from "@services/types";
+import type { GemeloSnapshot, ActividadPredicha } from "@services/types";
 import { colors } from "@theme/colors";
 import { useEffect } from "react";
 
@@ -39,13 +40,15 @@ const ACT_COLOR: Record<string, string> = {
 };
 
 function InsightCard({
-  emoji,
+  icon: Icon,
+  iconColor,
   titulo,
   descripcion,
   tipo,
   delay,
 }: {
-  emoji: string;
+  icon: any;
+  iconColor: string;
   titulo: string;
   descripcion: string;
   tipo: "positivo" | "neutro" | "negativo";
@@ -71,7 +74,12 @@ function InsightCard({
       transition={{ type: "timing", duration: 350, delay }}
       className={`rounded-2xl p-4 border ${border} ${bg} flex-row gap-3 items-start`}
     >
-      <Text className="text-2xl">{emoji}</Text>
+      <View
+        className="w-9 h-9 rounded-xl items-center justify-center mt-0.5"
+        style={{ backgroundColor: `${iconColor}18` }}
+      >
+        <Icon size={18} color={iconColor} />
+      </View>
       <View className="flex-1">
         <Text className="text-white font-semibold text-sm">{titulo}</Text>
         <Text className="text-ink-300 text-xs mt-1 leading-4">{descripcion}</Text>
@@ -86,109 +94,52 @@ function InsightCard({
 }
 
 function generarInsights(
-  semana: { promediopasos: number; promedioMinActivos: number; rachaActual: number; mejorDia: string | null },
-  gemelo: { pasosHoy: number; minutosActivos: number; minutosDescanso: number } | undefined,
+  semana: SemanaResumen,
+  gemelo: GemeloSnapshot | undefined,
   actividadesFrecuentes: [string, number][],
+  historial: DiaResumen[],
+  metas: MetasConfig | undefined,
 ) {
-  const insights: Array<{
-    emoji: string;
-    titulo: string;
-    descripcion: string;
-    tipo: "positivo" | "neutro" | "negativo";
-  }> = [];
-
-  // Pasos
-  if (semana.promediopasos >= 8_000) {
-    insights.push({
-      emoji: "🏆",
-      titulo: "Meta de pasos superada",
-      descripcion: `Promedio de ${semana.promediopasos.toLocaleString("es-PE")} pasos/día esta semana. ¡Por encima del objetivo de 8.000!`,
-      tipo: "positivo",
-    });
-  } else if (semana.promediopasos >= 5_000) {
-    insights.push({
-      emoji: "👣",
-      titulo: "Cerca de tu meta de pasos",
-      descripcion: `Promedias ${semana.promediopasos.toLocaleString("es-PE")} pasos/día. Faltan ${(8_000 - semana.promediopasos).toLocaleString("es-PE")} para alcanzar el objetivo.`,
-      tipo: "neutro",
-    });
-  } else {
-    insights.push({
-      emoji: "⚠️",
-      titulo: "Pocos pasos esta semana",
-      descripcion: `Solo ${semana.promediopasos.toLocaleString("es-PE")} pasos/día de promedio. Intenta caminar un poco más cada mañana.`,
-      tipo: "negativo",
-    });
+  const insights: Array<{ icon: any; iconColor: string; titulo: string; descripcion: string; tipo: "positivo" | "neutro" | "negativo" }> = [];
+  const pasosRegistrados = historial.filter(d => d.tienePasos).length;
+  const actividadRegistrada = historial.filter(d => d.tieneDuracionActividad).length;
+  // Comparamos con elecciones personales, sin interpretar días sin lecturas como inactividad.
+  if (pasosRegistrados) {
+    const logrado = !!metas && semana.promediopasos >= metas.pasos;
+    insights.push({ icon: logrado ? Trophy : Footprints, iconColor: logrado ? colors.accent.mint : colors.brandCyan,
+      titulo: logrado ? "Tu promedio alcanza tu meta de pasos" : "Tus pasos de esta semana",
+      descripcion: `${semana.promediopasos.toLocaleString("es-PE")} pasos por día con lecturas · ${pasosRegistrados} días registrados.${metas ? ` Tu meta personal: ${metas.pasos.toLocaleString("es-PE")}.` : ""}`,
+      tipo: logrado ? "positivo" : "neutro" });
   }
-
-  // Actividad
-  if (semana.promedioMinActivos >= 30) {
-    insights.push({
-      emoji: "💪",
-      titulo: "Activo dentro del estándar OMS",
-      descripcion: `${semana.promedioMinActivos} min activos/día. La OMS recomienda ≥ 30 min diarios.`,
-      tipo: "positivo",
-    });
-  } else {
-    insights.push({
-      emoji: "🛋️",
-      titulo: "Sedentarismo por encima del ideal",
-      descripcion: `Solo ${semana.promedioMinActivos} min activos/día. Añadir 15 min de caminata puede marcar la diferencia.`,
-      tipo: "negativo",
-    });
+  if (actividadRegistrada) {
+    const logrado = !!metas && semana.promedioMinActivos >= metas.minutosActivos;
+    insights.push({ icon: Activity, iconColor: colors.accent.mint,
+      titulo: logrado ? "Tu promedio alcanza tu meta de movimiento" : "Movimiento con duración registrada",
+      descripcion: `${semana.promedioMinActivos} min por día con intervalos · ${actividadRegistrada} días con duración disponible.${metas ? ` Tu meta personal: ${metas.minutosActivos} min.` : ""}`,
+      tipo: logrado ? "positivo" : "neutro" });
   }
-
-  // Racha
-  if (semana.rachaActual >= 5) {
-    insights.push({
-      emoji: "🔥",
-      titulo: `¡Racha de ${semana.rachaActual} días!`,
-      descripcion: "Llevas varios días consecutivos moviéndote. Mantén el ritmo.",
-      tipo: "positivo",
-    });
-  } else if (semana.rachaActual >= 2) {
-    insights.push({
-      emoji: "⚡",
-      titulo: `Racha de ${semana.rachaActual} días`,
-      descripcion: "Vas bien. ¡Unos días más y tendrás una racha notable!",
-      tipo: "neutro",
-    });
+  if (semana.rachaActual >= 2) insights.push({ icon: Flame, iconColor: colors.accent.amber,
+    titulo: `Racha registrada: ${semana.rachaActual} días`, descripcion: "Días consecutivos con al menos 3.000 pasos registrados. Cada registro suma a tu historia.", tipo: "positivo" });
+  if (gemelo?.fuentes.some(f => f.codigo === "sleep" && f.disponible)) {
+    const horas = (gemelo.minutosSueno ?? 0) / 60;
+    insights.push({ icon: Moon, iconColor: colors.violet, titulo: "Tu registro de sueño de hoy",
+      descripcion: `${horas.toFixed(1)} h registradas.${metas ? ` Tu referencia personal: ${metas.horasSueno} h.` : ""} Una lectura puede cubrir solo parte de la noche.`, tipo: "neutro" });
   }
-
-  // Sueño
-  const horasSueno = (gemelo?.minutosDescanso ?? 0) / 60;
-  if (horasSueno >= 7 && horasSueno <= 9) {
-    insights.push({
-      emoji: "😴",
-      titulo: "Buen descanso registrado",
-      descripcion: `${horasSueno.toFixed(1)} h de sueño · Dentro del rango ideal (7–9 h).`,
-      tipo: "positivo",
-    });
-  } else if (horasSueno > 0 && horasSueno < 6) {
-    insights.push({
-      emoji: "😵",
-      titulo: "Poco descanso detectado",
-      descripcion: `${horasSueno.toFixed(1)} h de sueño · Por debajo del mínimo recomendado.`,
-      tipo: "negativo",
-    });
-  }
-
-  // Actividad dominante
   if (actividadesFrecuentes[0]) {
     const [actKey, count] = actividadesFrecuentes[0];
-    insights.push({
-      emoji: "📊",
-      titulo: `Tu actividad dominante: ${ACTIVIDAD_LABELS[actKey as ActividadPredicha] ?? actKey}`,
-      descripcion: `Apareció ${count} veces esta semana como actividad principal del día.`,
-      tipo: "neutro",
-    });
+    insights.push({ icon: BarChart3, iconColor: colors.violet,
+      titulo: `Actividad más registrada: ${ACTIVIDAD_LABELS[actKey as ActividadPredicha] ?? actKey}`,
+      descripcion: `Fue la actividad con más observaciones en ${count} días. Los registros no representan todo el tiempo del día.`, tipo: "neutro" });
   }
-
   return insights;
 }
 
 export default function Insights() {
   const { data: historial = [] } = useHistorial(7);
+  const { data: periodos = [] } = useHistorial(15);
+  const { data: metas } = useMetas();
+  // Dos semanas completas; hoy no se compara con un día ya terminado.
+  const comparacion = compararSemanas(periodos.slice(7, 14), periodos.slice(0, 7));
   const { data: semana } = useSemanaResumen(7);
   const { data: gemelo } = useGemelo();
   const { data: logros = [] } = useLogros();
@@ -210,35 +161,28 @@ export default function Insights() {
   const totalDias = actsSorted.reduce((s, [, c]) => s + c, 0);
 
   const insights = semana
-    ? generarInsights(semana, gemelo, actsSorted)
+    ? generarInsights(semana, gemelo, actsSorted, historial, metas)
     : [];
 
   const logrosDesbloqueados = logros.filter((l) => l.desbloqueado);
 
-  const esPro = useEsPro();
-  const insightsVisibles = esPro ? insights : insights.slice(0, 2);
-  const insightsBloqueados = esPro ? [] : insights.slice(2);
+  const insightsVisibles = insights;
 
   return (
     <Screen scroll>
-      <View className="gap-1">
-        <Text className="text-3xl font-bold text-white">Insights</Text>
-        <Text className="text-base text-ink-300">
-          Tendencias y patrones de los últimos 7 días.
-        </Text>
-      </View>
+      <PageHeader title="Mi semana" subtitle="Un resumen de tus días registrados." />
 
       <View className="flex-row gap-2 mt-4 flex-wrap items-center">
         <Chip label="Esta semana" tone="brand" leadingIcon={<Sparkles size={12} color={colors.brandCyan} />} />
         <Chip label={`${logrosDesbloqueados.length} logros`} tone="violet" leadingIcon={<Trophy size={12} color={colors.violet} />} />
-        {!esPro && <ProBadge label="PRO DISPONIBLE" />}
+        <Chip label="Resumen semanal" tone="neutral" />
       </View>
 
       {/* ── Distribución de actividades ── */}
       {actsSorted.length > 0 && (
         <Card glass className="mt-5">
           <Text className="text-white/80 text-xs uppercase tracking-widest font-semibold mb-3">
-            ¿Cómo pasaste tu semana?
+            ¿Qué actividades registraste?
           </Text>
           <View className="gap-2.5">
             {actsSorted.map(([act, count], i) => {
@@ -277,8 +221,8 @@ export default function Insights() {
       {semana && (
         <View className="flex-row gap-3 mt-4">
           {[
-            { label: "Promedio pasos", value: semana.promediopasos.toLocaleString("es-PE"), icon: Footprints, color: colors.brandCyan },
-            { label: "Min activos", value: `${semana.promedioMinActivos}`, icon: Activity, color: colors.accent.mint },
+            { label: "Promedio pasos", value: historial.some(d => d.tienePasos) ? semana.promediopasos.toLocaleString("es-PE") : "—", icon: Footprints, color: colors.brandCyan },
+            { label: "Min activos", value: historial.some(d => d.tieneDuracionActividad) ? `${semana.promedioMinActivos}` : "—", icon: Activity, color: colors.accent.mint },
           ].map(({ label, value, icon: Icon, color }) => (
             <Card key={label} className="flex-1">
               <Icon size={16} color={color} />
@@ -296,43 +240,27 @@ export default function Insights() {
             <Zap size={16} color={colors.accent.amber} />
             <Text className="text-white font-semibold text-base">Observaciones del gemelo</Text>
           </View>
-          {!esPro && (
-            <Text className="text-[11px] text-ink-400">
-              2 de {insights.length} visibles
-            </Text>
-          )}
+          <Text className="text-[11px] text-ink-400">{historial.filter(d => d.totalEventos > 0).length} días con registros</Text>
         </View>
 
         {insightsVisibles.map((ins, i) => (
           <InsightCard key={ins.titulo} {...ins} delay={i * 80} />
         ))}
 
-        {!esPro && insightsBloqueados.length > 0 && (
-          <ProGate
-            titulo="Observaciones profundas de tu rutina"
-            descripcion="Desbloquea el análisis completo de hábitos, correlaciones de descanso y predicciones de consistencia con ando Pro."
-            beneficios={[
-              `${insightsBloqueados.length} análisis adicionales disponibles esta semana`,
-              "Detección predictiva de desviaciones en tu rutina",
-              "Recomendaciones personalizadas basadas en tu modelo",
-            ]}
-          >
-            <View className="gap-3">
-              {insightsBloqueados.map((ins, i) => (
-                <InsightCard key={ins.titulo} {...ins} delay={i * 80} />
-              ))}
-            </View>
-          </ProGate>
-        )}
-
         {insights.length === 0 && (
           <Card>
             <Text className="text-ink-300 text-sm">
-              Registra más actividad para que tu gemelo genere observaciones personalizadas.
+              Registra tu primer momento para ver aquí el resumen de tu semana.
             </Text>
           </Card>
         )}
       </View>
+
+      <Card glass className="mt-4">
+        <View className="flex-row items-center gap-2"><BarChart3 size={16} color={colors.brandCyan} /><Text className="text-white font-semibold">Tu semana, comparada</Text></View>
+        <Text className="text-white text-sm font-semibold mt-3">{comparacion.titulo}</Text>
+        <Text className="text-ink-300 text-xs mt-2 leading-5">{comparacion.detalle}</Text>
+      </Card>
 
       {/* ── Logros recientes ── */}
       {logrosDesbloqueados.length > 0 && (
@@ -350,8 +278,10 @@ export default function Insights() {
                 transition={{ delay: i * 60, type: "spring" }}
                 className="bg-white/8 border border-white/10 rounded-2xl px-3 py-2 items-center"
               >
-                <Text className="text-2xl">{l.emoji}</Text>
-                <Text className="text-[10px] text-white/80 font-semibold mt-1 text-center">{l.titulo}</Text>
+                <View className="w-8 h-8 rounded-xl items-center justify-center bg-amber-500/15 mb-1">
+                  <Trophy size={16} color={colors.accent.amber} />
+                </View>
+                <Text className="text-[10px] text-white/80 font-semibold text-center">{l.titulo}</Text>
               </MotiView>
             ))}
           </View>

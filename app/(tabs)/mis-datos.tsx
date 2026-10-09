@@ -4,15 +4,20 @@ import { useRouter } from "expo-router";
 import { MotiView } from "moti";
 import {
   AlertTriangle,
+  CheckCircle2,
+  Cpu,
   Database,
   Download,
   FileText,
   FileWarning,
+  Lock,
+  MapPin,
   Shield,
   Trash2,
   UserX,
 } from "lucide-react-native";
 
+import { PageHeader } from "@components/ui/PageHeader";
 import { Screen } from "@components/ui/Screen";
 import { Card } from "@components/ui/Card";
 import { Button } from "@components/ui/Button";
@@ -79,27 +84,11 @@ export default function MisDatos() {
     });
   };
 
-  const handleSolicitarAcceso = () => {
-    Alert.alert(
-      "Solicitud de acceso (ARCO)",
-      `Se registrará una solicitud de acceso completo a los datos del usuario ${user?.id?.slice(0, 8)}…\n\nEl equipo de investigación responderá en ≤ 15 días hábiles.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Enviar solicitud",
-          onPress: () =>
-            Alert.alert(
-              "Solicitud registrada",
-              "Recibirás respuesta en investigacion@ando.pe en un plazo máximo de 15 días hábiles.",
-            ),
-        },
-      ],
-    );
-  };
+  const handleSolicitarAcceso = handleExportar;
 
   const handleEliminar = () => {
     Alert.alert(
-      "⚠️ Eliminar cuenta",
+      "Eliminar cuenta",
       "Esta acción eliminará PERMANENTEMENTE:\n\n• Tu perfil\n• Todos tus eventos y sensores\n• Historial de consentimientos\n• Predicciones del gemelo\n\nNo es reversible.",
       [
         { text: "Cancelar", style: "cancel" },
@@ -120,10 +109,10 @@ export default function MisDatos() {
                       onSuccess: () => {
                         router.replace("/(auth)/welcome" as any);
                       },
-                      onError: () => {
+                      onError: (error) => {
                         Alert.alert(
-                          "Error al eliminar",
-                          "No se pudieron borrar todos los datos. Prueba de nuevo o contacta a soporte.",
+                          "Resultado de la eliminación",
+                          error.message,
                         );
                       },
                     });
@@ -160,12 +149,7 @@ export default function MisDatos() {
 
   return (
     <Screen scroll>
-      <View className="gap-1">
-        <Text className="text-3xl font-bold text-white">Mis Datos</Text>
-        <Text className="text-base text-ink-300">
-          Portabilidad y control total de tu información.
-        </Text>
-      </View>
+      <PageHeader title="Mis datos" subtitle="Consulta y gestiona tus datos personales." />
 
       <View className="flex-row flex-wrap gap-2 mt-4">
         <Chip
@@ -214,8 +198,8 @@ export default function MisDatos() {
         <Text className="text-ink-300 text-sm mb-4 leading-5">
           Genera un archivo JSON con{" "}
           <Text className="text-white font-semibold">todos</Text> tus datos: perfil,
-          eventos de los últimos 90 días, consentimientos firmados, correcciones y
-          predicciones. Puedes compartirlo por correo, Drive o cualquier app.
+          eventos disponibles, consentimientos, correcciones, predicciones,
+          apariencia, metas y tu plan personal. Puedes compartirlo por correo, Drive o cualquier app.
         </Text>
 
         {/* Barra de progreso */}
@@ -254,7 +238,7 @@ export default function MisDatos() {
         </Text>
         <Button
           variant="secondary"
-          label="Solicitar acceso completo"
+          label="Obtener copia de mis registros"
           leadingIcon={<FileWarning size={18} color={colors.brand} />}
           onPress={handleSolicitarAcceso}
         />
@@ -267,14 +251,19 @@ export default function MisDatos() {
           <Text className="text-white font-semibold">Cómo usamos tus datos</Text>
         </View>
         {[
-          { emoji: "📍", txt: "Las coordenadas GPS se convierten en zonas anónimas antes de guardarse. Nunca almacenamos tu ubicación exacta." },
-          { emoji: "🔒", txt: "RLS activo: solo tú accedes a tus datos. Ni el equipo de desarrollo puede leerlos sin autorización." },
-          { emoji: "🔬", txt: "Los datos de investigación se usan de forma anonimizada y agrupada. Nunca se te identifica individualmente." },
-          { emoji: "✅", txt: "Puedes revocar cualquier consentimiento en cualquier momento desde la sección Perfil → Consentimientos." },
-        ].map(({ emoji, txt }) => (
-          <Text key={emoji} className="text-ink-300 text-xs mt-2.5 leading-5">
-            {emoji}  {txt}
-          </Text>
+          { icon: MapPin, color: colors.accent.mint, txt: "Las coordenadas GPS se convierten en zonas anónimas antes de guardarse. Nunca almacenamos tu ubicación exacta." },
+          { icon: Lock, color: colors.brandCyan, txt: "RLS activo: solo tú accedes a tus datos. Los roles administrativos del servidor tienen permisos distintos." },
+          { icon: Cpu, color: colors.violet, txt: "Las estimaciones locales usan reglas generales. Participar en investigación requiere un consentimiento separado." },
+          { icon: CheckCircle2, color: colors.accent.mint, txt: "Puedes revocar cualquier consentimiento en cualquier momento desde la sección Perfil → Consentimientos." },
+        ].map(({ icon: TIcon, color, txt }, i) => (
+          <View key={i} className="flex-row items-start gap-2.5 mt-2.5">
+            <View className="w-5 h-5 rounded-md items-center justify-center mt-0.5" style={{ backgroundColor: `${color}18` }}>
+              <TIcon size={12} color={color} />
+            </View>
+            <Text className="flex-1 text-ink-300 text-xs leading-5">
+              {txt}
+            </Text>
+          </View>
         ))}
       </Card>
 

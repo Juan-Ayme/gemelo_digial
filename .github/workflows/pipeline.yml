@@ -10,6 +10,11 @@ on:
     - cron: "0 6 * * *"
   workflow_dispatch: {} # además permite lanzarlo a mano desde la pestaña Actions
 
+# Una sola publicación a la base, incluso si se lanza manualmente junto al cron.
+concurrency:
+  group: gemelo-pipeline-publicacion
+  cancel-in-progress: false
+
 jobs:
   entrenar:
     runs-on: ubuntu-latest
@@ -30,6 +35,9 @@ jobs:
 
       - name: Instalar PySpark
         run: pip install -r pipeline/requirements.txt
+
+      - name: Verificar escritura idempotente y transacciones
+        run: python -m unittest discover -s pipeline -p 'test_*.py' -v
 
       - name: Modelo de arranque (bootstrap sintetico) + prediccion
         env:

@@ -22,7 +22,7 @@ import {
 
 import { useAuthStore } from "@stores/authStore";
 import { asyncStoragePersister, queryClient } from "@lib/queryClient";
-import { registrarTareaSegundoPlano } from "@services/backgroundCapture";
+import { useConsents } from "@hooks/useConsents";
 import { useNotificacionesAutomaticas } from "@hooks/useNotificaciones";
 
 // En web, NativeWind lanza "dark mode is type 'media'" si algo intenta fijar el
@@ -72,6 +72,7 @@ console.error = (...args: Parameters<typeof console.error>) => {
 };
 
 function AppInner() {
+  useConsents();
   useNotificacionesAutomaticas();
   return <Slot />;
 }
@@ -92,12 +93,6 @@ export default function RootLayout() {
   useEffect(() => {
     initAuth().catch(() => {});
   }, [initAuth]);
-
-  // Registrar captura en segundo plano cuando la sesión esté lista
-  useEffect(() => {
-    if (!authReady) return;
-    registrarTareaSegundoPlano().catch(() => {});
-  }, [authReady]);
 
   useEffect(() => {
     if (fontsLoaded && authReady) {

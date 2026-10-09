@@ -75,7 +75,7 @@ export function Button({
       }}
       disabled={isDisabled}
       className={cn(
-        "flex-row items-center justify-center gap-2",
+        "flex-row items-center justify-center gap-2 min-h-[44px]",
         containerVariant[variant],
         sizeContainer[size],
         fullWidth ? "w-full" : "self-start",
@@ -88,7 +88,7 @@ export function Button({
         from={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ type: "timing", duration: 200 }}
-        className="flex-row items-center gap-2"
+        className="flex-row items-center justify-center gap-2 shrink"
       >
         {loading ? (
           <ActivityIndicator size="small" color={variant === "primary" ? "#0b1020" : colors.brandCyan} />
@@ -102,7 +102,7 @@ export function Button({
             sizeText[size],
             labelClassName,
           )}
-          style={{ fontFamily: "Inter_600SemiBold" }}
+          style={{ fontFamily: "Inter_600SemiBold", flexShrink: 1, textAlign: "center" }}
         >
           {label}
         </Text>

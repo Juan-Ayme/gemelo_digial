@@ -3,13 +3,13 @@ import { useAuthStore } from "@stores/authStore";
 import { fetchHistorial, calcularSemana } from "@services/historial";
 import type { DiaResumen, SemanaResumen } from "@services/historial";
 
-const qkHistorial = (userId: string) => ["historial", userId] as const;
+import { qk } from "@lib/queryClient";
 
 export function useHistorial(dias: number = 7) {
   const userId = useAuthStore((s) => s.user?.id ?? null);
 
   return useQuery({
-    queryKey: userId ? [...qkHistorial(userId), dias] : ["historial-anon"],
+    queryKey: userId ? qk.historial(userId, dias) : ["historial-anon"],
     enabled: !!userId,
     queryFn: () => fetchHistorial(userId!, dias),
     staleTime: 1000 * 60 * 5, // 5 min

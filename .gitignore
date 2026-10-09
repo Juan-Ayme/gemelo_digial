@@ -45,3 +45,10 @@ yarn-error.*
 __pycache__/
 *.pyc
 pipeline/.env
+
+# Exportaciones de comprobacion local
+.expo-web-check/
+.expo-native-check/
+
+# Copias de interfaz antes de ajustes locales
+.ando-backups/
