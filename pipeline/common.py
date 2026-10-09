@@ -158,8 +158,70 @@ def escribir_caracteristicas(url: str, feat):
     escribir_jdbc(caracteristicas, url, "caracteristicas_actividad")
 
 
+def resolver_estado_prediccion(spark, url: str, preferido: str = "vigente") -> str:
+    """
+    Detecta los valores permitidos en el enum PostgreSQL `estado_prediccion`.
+    Si 'preferido' no es válido, intenta añadirlo (vía ALTER TYPE) o selecciona
+    el mejor valor activo disponible (ej. 'activa', 'valida', 'active').
+    """
+    valores = []
+    query = (
+        "(SELECT e.enumlabel "
+        "FROM pg_catalog.pg_enum e "
+        "JOIN pg_catalog.pg_type t ON e.enumtypid = t.oid "
+        "WHERE t.typname = 'estado_prediccion' "
+        "ORDER BY e.enumsortorder) AS enum_vals"
+    )
+    try:
+        df = (
+            spark.read.format("jdbc")
+            .option("url", _url(url))
+            .option("driver", JDBC_DRIVER)
+            .option("dbtable", query)
+            .load()
+        )
+        valores = [row["enumlabel"] for row in df.collect()]
+        if valores:
+            print(f"Valores existentes en enum 'estado_prediccion': {valores}")
+    except Exception as err:
+        print(f"Aviso al consultar enum 'estado_prediccion': {err}")
+
+    if preferido not in valores:
+        try:
+            jvm = spark._jvm
+            conn = jvm.java.sql.DriverManager.getConnection(_url(url))
+            conn.setAutoCommit(True)
+            stmt = conn.createStatement()
+            try:
+                stmt.execute(f"ALTER TYPE public.estado_prediccion ADD VALUE IF NOT EXISTS '{preferido}'")
+            except Exception:
+                stmt.execute(f"ALTER TYPE estado_prediccion ADD VALUE IF NOT EXISTS '{preferido}'")
+            stmt.close()
+            conn.close()
+            print(f"Se añadió '{preferido}' al enum 'estado_prediccion' en PostgreSQL.")
+            return preferido
+        except Exception as err:
+            print(f"Aviso al intentar añadir '{preferido}' al enum: {err}")
+
+    if preferido in valores:
+        return preferido
+
+    sinonimos = ["vigente", "activa", "activo", "valida", "valido", "active", "current"]
+    for s in sinonimos:
+        if s in valores:
+            print(f"Usando valor compatible '{s}' para estado_prediccion.")
+            return s
+
+    if valores:
+        print(f"Usando primer valor disponible '{valores[0]}' para estado_prediccion.")
+        return valores[0]
+
+    return preferido
+
+
 def escribir_predicciones(url: str, model, feat, modelo_id, pred_estado: str = "vigente"):
     """Última ventana de cada usuario -> próxima actividad. usuario_id deben ser reales."""
+    estado_final = resolver_estado_prediccion(feat.sparkSession, url, pred_estado)
     labels = model.stages[3].labels
     map_expr = F.array(*[F.lit(x) for x in labels])
     ult = feat.withColumn(
@@ -175,7 +237,7 @@ def escribir_predicciones(url: str, model, feat, modelo_id, pred_estado: str = "
             "actividad_predicha",
             "probabilidad",
             F.lit(30).alias("horizonte_minutos"),
-            F.lit(pred_estado).alias("estado"),
+            F.lit(estado_final).alias("estado"),
             F.lit(json.dumps(FEATURES)).alias("variables_relevantes"),
             F.lit("Predicción del Random Forest (PySpark).").alias("explicacion"),
         )

@@ -1,4 +1,6 @@
-import * as Crypto from "expo-crypto";
+import { nuevoEvento } from "@services/eventoFactory";
+import { guardarEventos, leerEventosDesde } from "@services/eventStore";
+import { diaDelEvento, fechaLocal, resumirEventos } from "@services/metricas";
 
 import { supabase } from "@lib/supabase";
 import { isRemote } from "@services/mode";
@@ -13,11 +15,11 @@ import {
   type Prediccion,
   type RutinaBloque,
 } from "@services/types";
-import { extraerFeatures, predecirProximaActividadRF } from "@services/rfModel";
+import { extraerFeatures, predecirPorReglas } from "@services/rfModel";
 import { calcularVariacionRutina } from "@services/lineaBase";
 
 // Fuente de la predicción vigente
-export type FuentePrediccion = "rf" | "rf_local" | "heuristica";
+export type FuentePrediccion = "rf" | "reglas" | "rf_local" | "heuristica";
 
 const ACTIVIDADES: ActividadPredicha[] = [
   "desplazamiento",
@@ -40,20 +42,8 @@ function inicioDeHoy(): Date {
 
 export async function fetchEventsToday(userId: string): Promise<EventoRow[]> {
   const desde = inicioDeHoy();
-
-  if (!isRemote()) {
-    const list = await lget<EventoRow[]>(`events:${userId}`, []);
-    return list.filter((e) => new Date(e.inicio_en) >= desde);
-  }
-
-  const { data, error } = await supabase!
-    .from(TABLES.eventosCrudos)
-    .select("*")
-    .eq(OWNER_COL, userId)
-    .gte("inicio_en", desde.toISOString())
-    .order("inicio_en", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as EventoRow[];
+  const list = await leerEventosDesde(userId, desde);
+  return list.filter(e => diaDelEvento(e) === fechaLocal(desde));
 }
 
 /** Genera un evento sintético coherente (mientras no hay APIs nativas). */
@@ -64,8 +54,7 @@ export function generarEventoSimulado(): EventoRow {
   const actividad = ACTIVIDADES[Math.floor(Math.random() * ACTIVIDADES.length)];
   const esPaso = actividad === "desplazamiento" || actividad === "actividad_fisica";
 
-  return {
-    evento_uuid: Crypto.randomUUID(),
+  return nuevoEvento({
     procedencia: "sistema",
     tipo_evento: "ventana_actividad",
     inicio_en: inicio.toISOString(),
@@ -80,79 +69,36 @@ export function generarEventoSimulado(): EventoRow {
     calidad: 60 + Math.round(Math.random() * 39),
     version_consentimiento: "v1.0",
     datos_minimos: { minutos, simulado: true },
-  };
+  });
 }
 
 export async function insertEventoSimulado(userId: string): Promise<void> {
+  if (isRemote()) throw new Error("Los ejemplos solo están disponibles en modo demo.");
   await insertEventos(userId, [generarEventoSimulado()]);
 }
 
 /** Inserta uno o varios eventos (real desde sensores, o simulados). */
 export async function insertEventos(userId: string, eventos: EventoRow[]): Promise<void> {
   if (!eventos.length) return;
-
-  if (!isRemote()) {
-    const list = await lget<EventoRow[]>(`events:${userId}`, []);
-    list.push(...eventos);
-    await lset(`events:${userId}`, list);
-    return;
+  await guardarEventos(userId, eventos);
+  // Los contadores se confirman solo después de persistir los eventos localmente.
+  for (const e of eventos) {
+    const key = e.datos_minimos.contador_clave;
+    const total = e.datos_minimos.contador_total;
+    const date = e.datos_minimos.contador_fecha;
+    if (typeof key === "string" && typeof total === "number" && typeof date === "string") {
+      await lset(key, { date, total });
+    }
   }
-
-  const rows = eventos.map((ev) => ({ [OWNER_COL]: userId, ...ev }));
-  const { error } = await supabase!.from(TABLES.eventosCrudos).insert(rows);
-  if (error) throw error;
 }
 
 // --- Derivaciones puras (selectors de TanStack Query) ----------------------
 
-function duracionMin(e: EventoRow): number {
-  if (e.fin_en) {
-    return Math.max(0, (new Date(e.fin_en).getTime() - new Date(e.inicio_en).getTime()) / 60000);
-  }
-  const m = e.datos_minimos?.["minutos"];
-  return typeof m === "number" ? m : 0;
-}
+export function buildGemelo(events: EventoRow[], history: EventoRow[] = []): GemeloSnapshot {
+  const sorted = [...events].filter(e => e.disponibilidad).sort((a, b) => a.inicio_en.localeCompare(b.inicio_en));
 
-/**
- * Predicción por heurística de frecuencia sobre las ventanas de hoy.
- * NO es el modelo Random Forest (eso es trabajo futuro del pipeline); sirve
- * para que la UI muestre algo coherente con los datos reales del titular.
- */
-function heuristicPrediccion(events: EventoRow[]): Prediccion | null {
-  const acts = events.map((e) => e.valor_texto).filter((a): a is string => Boolean(a));
-  if (acts.length < 2) return null;
-
-  const freq: Record<string, number> = {};
-  for (const a of acts) freq[a] = (freq[a] ?? 0) + 1;
-  const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0] as ActividadPredicha;
-  const probabilidad = Math.min(0.95, 0.5 + (freq[top] / acts.length) * 0.5);
-
-  return {
-    actividad: top,
-    probabilidad,
-    horizonteMin: 30,
-    variablesRelevantes: ["hora_del_dia", "actividad_actual", "zona_general", "pasos_ventana"],
-    explicacion: `Actividad frecuente detectada hoy. Tu gemelo calibra continuamente tus patrones habituales.`,
-    generadaEn: new Date().toISOString(),
-  };
-}
-
-export function buildGemelo(events: EventoRow[]): GemeloSnapshot {
-  const sorted = [...events].sort((a, b) => a.inicio_en.localeCompare(b.inicio_en));
-
-  const activo = new Set<string>(["desplazamiento", "actividad_fisica"]);
-  const descanso = new Set<string>(["descanso", "permanencia"]);
-
-  let pasosHoy = 0;
-  let minutosActivos = 0;
-  let minutosDescanso = 0;
-  for (const e of sorted) {
-    if (e.unidad === "pasos" && typeof e.valor_numerico === "number") pasosHoy += e.valor_numerico;
-    if (e.tipo_evento === "sueno" && typeof e.valor_numerico === "number") minutosDescanso += e.valor_numerico;
-    const act = e.valor_texto ?? "";
-    if (activo.has(act)) minutosActivos += duracionMin(e);
-    else if (descanso.has(act)) minutosDescanso += duracionMin(e);
-  }
+  const metrics = resumirEventos(sorted);
+  const { pasosHoy, minutosActivos, minutosDescanso, minutosSueno } = metrics;
 
   const last = sorted[sorted.length - 1];
   const confs = sorted
@@ -162,8 +108,8 @@ export function buildGemelo(events: EventoRow[]): GemeloSnapshot {
     ? Math.round(confs.reduce((a, b) => a + b, 0) / confs.length)
     : 0;
 
-  const hayActividad = sorted.some((e) => Boolean(e.valor_texto));
-  const hayPasos = sorted.some((e) => e.unidad === "pasos");
+  const hayActividad = sorted.some((e) => e.tipo_evento === "ventana_actividad");
+  const hayPasos = metrics.tienePasos;
   const hayZona = sorted.some((e) => Boolean(e.zona_general));
   const haySueno = sorted.some((e) => e.tipo_evento === "sueno");
   const hayRitmo = sorted.some((e) => e.tipo_evento === "ritmo_cardiaco");
@@ -176,32 +122,38 @@ export function buildGemelo(events: EventoRow[]): GemeloSnapshot {
   ];
 
   const lastWithZone = [...sorted].reverse().find((e) => Boolean(e.zona_general));
-  const actEvents = sorted.filter((e) => Boolean(e.valor_texto));
+  const actEvents = sorted.filter((e) => e.tipo_evento === "ventana_actividad" && Boolean(e.valor_texto));
   const lastAct = actEvents[actEvents.length - 1]?.valor_texto ?? null;
   const prevAct = actEvents[actEvents.length - 2]?.valor_texto ?? null;
 
-  // Inferencia Random Forest On-Device
+  // Estimación por reglas generales; el modelo entrenado se consulta aparte.
   const feat = extraerFeatures({
     actividadActual: lastAct,
     actividadAnterior: prevAct,
-    pasosVentana: Math.round(pasosHoy),
+    pasosVentana: Math.round(sorted.filter(e => e.unidad === "pasos" && !e.datos_minimos.calibracion_humana && Date.parse(e.inicio_en) >= Date.now() - 30 * 60000).reduce((a, e) => a + Math.max(0, e.valor_numerico ?? 0), 0)),
     zonaGeneral: lastWithZone?.zona_general,
   });
 
-  const predRFLocal = sorted.length >= 1 ? predecirProximaActividadRF(feat) : null;
-  const analisis = calcularVariacionRutina(sorted);
+  const lastActivity = actEvents[actEvents.length - 1];
+  const recentActivity = lastActivity && Date.now() - Date.parse(lastActivity.inicio_en) <= 30 * 60000 && Date.parse(lastActivity.inicio_en) <= Date.now();
+  const predRFLocal = recentActivity ? predecirPorReglas(feat) : null;
+  const analisis = calcularVariacionRutina(sorted, new Date(), history);
 
   return {
     pasosHoy: Math.round(pasosHoy),
     minutosActivos: Math.round(minutosActivos),
     minutosDescanso: Math.round(minutosDescanso),
+    minutosSueno,
+    tieneDuracionActividad: metrics.tieneDuracionActividad,
+    ultimaLectura: last?.inicio_en ?? null,
+    ultimaActividadEn: lastActivity?.inicio_en ?? null,
     zonaActual: lastWithZone?.zona_general ?? "—",
-    ultimaActividad: (lastAct as ActividadPredicha) ?? (last?.valor_texto as ActividadPredicha) ?? null,
-    prediccion: predRFLocal ?? heuristicPrediccion(sorted),
+    ultimaActividad: (lastAct as ActividadPredicha) ?? null,
+    prediccion: predRFLocal,
     variacion: analisis.nivel,
     fuentes,
-    totalEventos: sorted.length,
-    fuentePrediccion: "rf_local",
+    totalEventos: metrics.totalEventos,
+    fuentePrediccion: "reglas",
     analisisVariacion: analisis,
   };
 }
@@ -209,6 +161,7 @@ export function buildGemelo(events: EventoRow[]): GemeloSnapshot {
 export function buildRutina(events: EventoRow[]): RutinaBloque[] {
   // Solo procesar eventos que corresponden a ventanas de actividad
   const activityEvents = events.filter((e) => {
+    if (!e.disponibilidad) return false;
     if (e.tipo_evento === "ventana_actividad") return true;
     if (e.valor_texto && e.tipo_evento !== "pasos" && e.tipo_evento !== "sueno" && e.tipo_evento !== "ritmo_cardiaco") {
       return true;
@@ -262,8 +215,8 @@ export function buildRutina(events: EventoRow[]): RutinaBloque[] {
     const lastFin = lastCluster ? new Date(lastCluster.fin).getTime() : 0;
     const timeDiffMin = lastCluster ? (evInicio - lastFin) / 60000 : 999;
 
-    if (lastCluster && lastCluster.actividad === act && timeDiffMin <= 15) {
-      lastCluster.fin = ev.fin_en ?? ev.inicio_en;
+    if (lastCluster && lastCluster.actividad === act && timeDiffMin <= 0 && new Date(ev.fin_en ?? ev.inicio_en).getTime() > new Date(ev.inicio_en).getTime()) {
+      lastCluster.fin = new Date(Math.max(Date.parse(lastCluster.fin), Date.parse(ev.fin_en ?? ev.inicio_en))).toISOString();
       if (ev.zona_general && !lastCluster.zona) {
         lastCluster.zona = ev.zona_general;
       }
@@ -287,7 +240,7 @@ export function buildRutina(events: EventoRow[]): RutinaBloque[] {
     const horaInicio = formatHora(c.inicio);
     const horaFin = formatHora(c.fin);
     const duracionMin = Math.max(
-      1,
+      0,
       Math.round((new Date(c.fin).getTime() - new Date(c.inicio).getTime()) / 60000)
     );
 
@@ -333,7 +286,7 @@ const ACTIVIDADES_VALIDAS = new Set<string>([
  *  - la fila contiene un valor de actividad desconocido.
  *
  * En cualquier caso de `null`, `useGemelo` cae automáticamente a la
- * heurística de frecuencia local (`heuristicPrediccion`).
+ * estimación por reglas generales del teléfono.
  */
 export async function fetchPrediccionRF(
   userId: string,
@@ -341,18 +294,24 @@ export async function fetchPrediccionRF(
   if (!isRemote()) return null;
 
   const { data, error } = await supabase!
-    .from("predicciones")
+    .from(TABLES.predicciones)
     .select(
-      "actividad_predicha, probabilidad, horizonte_minutos, variables_relevantes, explicacion, created_at",
+      "actividad_predicha, probabilidad, horizonte_minutos, variables_relevantes, explicacion, generada_en, estado",
     )
     .eq(OWNER_COL, userId)
-    .eq("estado", "vigente")
-    .order("created_at", { ascending: false })
+    .order("generada_en", { ascending: false })
     .limit(1)
     .maybeSingle(); // null cuando 0 filas, nunca lanza PGRST116
 
   if (error || !data) return null;
+  const estadoRow = String(data.estado ?? "");
+  if (estadoRow === "expirada" || estadoRow === "descartada" || estadoRow === "inactiva") return null;
 
+  const age = Date.now() - Date.parse(data.generada_en ?? "");
+  const horizon = Number(data.horizonte_minutos);
+  if (!Number.isFinite(age) || age < -60000 || !Number.isFinite(horizon) || horizon <= 0 || age > horizon * 60000) return null;
+  const probability = Number(data.probabilidad);
+  if (!Number.isFinite(probability) || probability < 0 || probability > 1) return null;
   const actividad = data.actividad_predicha as string;
   if (!ACTIVIDADES_VALIDAS.has(actividad)) return null;
 
@@ -372,7 +331,7 @@ export async function fetchPrediccionRF(
       horizonteMin: Number(data.horizonte_minutos ?? 30),
       variablesRelevantes,
       explicacion: data.explicacion ?? "Predicción del modelo Random Forest.",
-      generadaEn: data.created_at ?? new Date().toISOString(),
+      generadaEn: data.generada_en ?? new Date().toISOString(),
     },
   };
 }
